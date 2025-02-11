@@ -16,7 +16,6 @@ public class ImageStackService {
     private ImageStackRepository imageStackRepository;
 
     public ImageStack createImageStack(ImageStack imageStack) {
-        imageStack.setCreatedAt(Instant.now());
         return imageStackRepository.save(imageStack);
     }
 

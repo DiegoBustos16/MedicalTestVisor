@@ -16,7 +16,6 @@ public class ImageFileService {
     private ImageFileRepository imageFileRepository;
 
     public ImageFile saveImageFile(ImageFile imageFile) {
-        imageFile.setCreatedAt(Instant.now());
         return imageFileRepository.save(imageFile);
     }
 

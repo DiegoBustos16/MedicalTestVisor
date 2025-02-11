@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class TestService {
@@ -16,7 +17,7 @@ public class TestService {
     private TestRepository testRepository;
 
     public TestEntity createTestEntity(TestEntity testEntity) {
-        testEntity.setCreatedAt(Instant.now());
+        testEntity.setPassCode(UUID.randomUUID().toString().replaceAll("-", "").substring(0, 10));
         return testRepository.save(testEntity);
     }
 

@@ -16,7 +16,6 @@ public class FileAttachmentService {
     private FileAttachmentRepository fileAttachmentRepository;
 
     public FileAttachment saveFileAttachment(FileAttachment fileAttachment) {
-        fileAttachment.setCreatedAt(Instant.now());
         return fileAttachmentRepository.save(fileAttachment);
     }
 

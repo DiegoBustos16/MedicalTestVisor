@@ -1,0 +1,21 @@
+services:
+  microservicio:
+    build: .
+    container_name: test-microservice
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://admin:admin123@mongodb:27017/medical-test-db?authSource=admin
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:4.2
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: medical-test-db
