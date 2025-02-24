@@ -5,7 +5,17 @@ services:
     container_name: eureka-server
     ports:
       - "8761:8761"
-
+  
+  config-server:
+    build: ./config-server
+    container_name: config-server
+    depends_on:
+      - eureka-server
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+    ports:
+      - "8888:8888"
+  
   test-microservice:
     build: ./test-microservice
     container_name: test-microservice
@@ -13,10 +23,11 @@ services:
       - "8080:8080"
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://admin:admin123@mongodb:27017/medical-test-db?authSource=admin
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
     depends_on:
-      - mongodb
       - eureka-server
+      - mongodb
+      - config-server
 
   mongodb:
     image: mongo:4.2
