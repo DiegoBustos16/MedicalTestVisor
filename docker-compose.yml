@@ -30,7 +30,7 @@ services:
       - postgres_keycloak_data:/var/lib/postgresql/data
 
   keycloak:
-    image: quay.io/keycloak/keycloak:23.0.0
+    image: quay.io/keycloak/keycloak:26.1.3
     container_name: keycloak
     restart: always
     depends_on:
@@ -101,6 +101,9 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin123
       MONGO_INITDB_DATABASE: medical-test-db
+    volumes:
+      - mongodb_data:/data/db
 
 volumes:
   postgres_keycloak_data:
+  mongodb_data:

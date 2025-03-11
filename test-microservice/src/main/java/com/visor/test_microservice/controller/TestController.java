@@ -7,6 +7,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +29,12 @@ public class TestController {
         return new ResponseEntity<>(createdTest, HttpStatus.CREATED);
     }
 
+    @Operation(summary = "Read All Tests",  description = "Retrieves all tests associated to the current user",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
     @GetMapping
     public ResponseEntity<List<TestEntity>> getAllTests() {
         List<TestEntity> tests = testService.getAllTests();
