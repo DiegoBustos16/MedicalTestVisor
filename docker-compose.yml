@@ -77,19 +77,19 @@ services:
     depends_on:
       - eureka-server
       - keycloak
+    volumes:
+      - ./api-gateway:/app.jar
 
   test-microservice:
     build: ./test-microservice
     container_name: test-microservice
-    environment:
-      - SPRING_DATA_MONGODB_URI=mongodb://admin:admin123@mongodb:27017/medical-test-db?authSource=admin
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     depends_on:
       - kafka
       - eureka-server
       - mongodb
       - config-server
+    volumes:
+      - ./test-microservice:/app.jar
 
   mongodb:
     image: mongo:4.2
@@ -104,6 +104,29 @@ services:
     volumes:
       - mongodb_data:/data/db
 
+  doctor-microservice:
+    build: ./doctor-microservice
+    container_name: doctor-microservice
+    depends_on:
+      - kafka
+      - eureka-server
+      - postgres-microservices
+      - config-server
+    volumes:
+      - ./doctor-microservice:/app.jar
+
+  postgres-microservices:
+    image: postgres:15
+    container_name: postgres-microservices
+    restart: always
+    environment:
+      POSTGRES_DB: microservices_db
+      POSTGRES_USER: microservices_user
+      POSTGRES_PASSWORD: microservices_password
+    volumes:
+      - postgres_microservices_data:/var/lib/postgresql/data
+
 volumes:
   postgres_keycloak_data:
   mongodb_data:
+  postgres_microservices_data:
