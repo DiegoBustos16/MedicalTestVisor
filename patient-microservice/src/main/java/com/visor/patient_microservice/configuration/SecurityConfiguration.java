@@ -1,4 +1,4 @@
-package com.visor.test_microservice.configuration;
+package com.visor.patient_microservice.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,16 +14,17 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                        "/api/tests/swagger-ui/**",
-                        "/api/tests/v3/api-docs/**",
-                        "/api/tests/swagger-resources/**",
-                        "/api/tests/webjars/**"
-                ).permitAll()
-                .anyRequest().authenticated())
-                .oauth2ResourceServer((oauth2) -> oauth2
+                        .requestMatchers(
+                                "/api/patients/swagger-ui/**",
+                                "/api/patients/v3/api-docs/**",
+                                "/api/patients/swagger-resources/**",
+                                "/api/patients/webjars/**"
+                        ).permitAll()
+                        .anyRequest().authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(Customizer.withDefaults())
                 );
+
         return http.build();
     }
 }

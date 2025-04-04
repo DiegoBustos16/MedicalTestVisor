@@ -20,12 +20,13 @@ public class SecurityConfiguration {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http.authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/swagger-resources/**",
-                                "/webjars/**"
+                                "/api/doctors/swagger-ui/**",
+                                "/api/doctors/v3/api-docs/**",
+                                "/api/doctors/swagger-resources/**",
+                                "/api/doctors/webjars/**"
                         ).permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -35,4 +36,5 @@ public class SecurityConfiguration {
 
         return http.build();
     }
+
 }

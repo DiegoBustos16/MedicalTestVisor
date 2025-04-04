@@ -114,6 +114,18 @@ services:
       - config-server
     volumes:
       - ./doctor-microservice:/app.jar
+        
+  patient-microservice:
+    build: ./patient-microservice
+    container_name: patient-microservice
+    depends_on:
+      - kafka
+      - eureka-server
+      - postgres-microservices
+      - config-server
+    volumes:
+      - ./patient-microservice:/app.jar
+      
 
   postgres-microservices:
     image: postgres:15
