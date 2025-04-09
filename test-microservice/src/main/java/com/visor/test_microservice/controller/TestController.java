@@ -3,9 +3,10 @@ package com.visor.test_microservice.controller;
 import com.visor.test_microservice.client.DoctorClient;
 import com.visor.test_microservice.client.HospitalClient;
 import com.visor.test_microservice.client.PatientClient;
-import com.visor.test_microservice.dto.UpdateTestDTO;
 import com.visor.test_microservice.entity.TestEntity;
 import com.visor.test_microservice.service.TestService;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,12 +42,33 @@ public class TestController {
     @Operation(summary = "Create Test", description = "Creates a new test",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "400", description = "Bad Request"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
+            @ApiResponse(responseCode = "201", description = "Test created successfully",
+                    content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "400", description = "Invalid request",
+                    content = @Content(mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(name = "MissingDoctor",
+                                            summary = "Doctor not found",
+                                            value = "{\"error\": \"Doctor does not exist or is deleted\"}"),
+                                    @ExampleObject(name = "InvalidHospital",
+                                            summary = "Doctor not in hospital",
+                                            value = "{\"error\": \"Doctor does not belong to the hospital\"}"),
+                                    @ExampleObject(name = "InvalidPatient",
+                                            summary = "Patient not found",
+                                            value = "{\"error\": \"Patient does not exist\"}")
+                            }
+                    )
+            ),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Unexpected server error\"}"
+                            )
+                    )
+            )
     })
     @PostMapping
-    public ResponseEntity<?> createTest(@RequestBody TestEntity testEntity, Authentication authentication) {
+    public ResponseEntity<?> createTest(@Valid @RequestBody TestEntity testEntity, Authentication authentication) {
         Jwt jwt = (Jwt) authentication.getPrincipal();
         String keycloakId = jwt.getSubject();
         Long doctorIdFromJwt = doctorClient.getDoctorByKeycloakId(keycloakId);
@@ -74,7 +96,13 @@ public class TestController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "500", description = "Server Error")
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Unexpected server error\"}"
+                            )
+                    )
+            )
     })
     @GetMapping
     public ResponseEntity<List<TestEntity>> getAllTests() {
@@ -86,7 +114,11 @@ public class TestController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "404", description = "Test not found"),
+            @ApiResponse(responseCode = "404", description = "Test not found",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"error\": \"Test not found with given ID\"}")
+                    )
+            ),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/{id}")
@@ -99,7 +131,11 @@ public class TestController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "404", description = "Test not found"),
+            @ApiResponse(responseCode = "404", description = "Test not found",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"error\": \"Test not found with given Passcode\"}")
+                    )
+            ),
             @ApiResponse(responseCode = "500", description = "Server Error")
             })
     @GetMapping("/passcode/{passcode}")
@@ -116,7 +152,7 @@ public class TestController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<TestEntity> updateTest(@PathVariable String id, @RequestBody UpdateTestDTO testEntity) {
+    public ResponseEntity<TestEntity> updateTest(@PathVariable String id, @RequestBody TestEntity testEntity) {
         TestEntity updatedTest = testService.updateTestEntity(id, testEntity);
         return updatedTest != null ? new ResponseEntity<>(updatedTest, HttpStatus.OK)
                 : ResponseEntity.notFound().build();
@@ -126,7 +162,11 @@ public class TestController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "No Content"),
-            @ApiResponse(responseCode = "404", description = "Test not found")
+            @ApiResponse(responseCode = "404", description = "Test not found",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"error\": \"Test not found with given ID\"}")
+                    )
+            )
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTest(@PathVariable String id) {
