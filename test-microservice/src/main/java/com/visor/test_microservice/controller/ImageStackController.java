@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/image-stacks")
+@RequestMapping("/api/tests/image-stacks")
 public class ImageStackController {
 
     @Autowired
@@ -29,7 +29,7 @@ public class ImageStackController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteImageStack(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteImageStack(@PathVariable String id) {
         imageStackService.deleteImageStack(id);
         return ResponseEntity.noContent().build();
     }

@@ -3,6 +3,7 @@ package com.visor.hospital_microservice.repository;
 import com.visor.hospital_microservice.entity.HospitalDoctor;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface HospitalDoctorRepository extends JpaRepository<HospitalDoctor, Long> {
@@ -13,4 +14,6 @@ public interface HospitalDoctorRepository extends JpaRepository<HospitalDoctor, 
     Optional<HospitalDoctor> findByDoctorIdAndDeletedAtIsNull (Long doctorId);
 
     Optional<HospitalDoctor> findByHospitalIdAndDeletedAtIsNull (Long hospitalId);
+
+    List<HospitalDoctor> findAllByHospitalIdAndDeletedAtIsNull(Long hospitalId);
 }

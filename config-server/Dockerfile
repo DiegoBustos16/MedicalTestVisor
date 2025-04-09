@@ -1,5 +1,12 @@
 FROM eclipse-temurin:17-jdk
+
 WORKDIR /app
-COPY target/config-server-0.0.1-SNAPSHOT.jar config-server.jar
+
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+RUN ./mvnw dependency:go-offline
+
+COPY src src
 EXPOSE 8888
-ENTRYPOINT ["java", "-jar", "config-server.jar"]
+CMD ["./mvnw", "spring-boot:run"]

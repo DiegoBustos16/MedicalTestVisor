@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.List;
 
 @Service
 @Transactional
@@ -23,17 +24,11 @@ public class HospitalDoctorService {
         Optional<HospitalDoctor> hospitalDoctor = hospitalDoctorRepository.findById(id);
         return hospitalDoctor;
     }
-
+    public List<HospitalDoctor> getAllHospitalDoctorsByHospitalId(Long hospitalId) {
+        return hospitalDoctorRepository.findAllByHospitalIdAndDeletedAtIsNull(hospitalId);
+    }
     public Optional<HospitalDoctor> getHospitalDoctorByDoctorIdAndHospitalIdAndDeletedAtIsNull(Long doctorId, Long hospitalId) {
         return hospitalDoctorRepository.findByDoctorIdAndHospitalIdAndDeletedAtIsNull(doctorId, hospitalId);
-    }
-
-    public Optional<HospitalDoctor> getHospitalDoctorByDoctorIdAndDeletedAtIsNull(Long doctorId) {
-        return hospitalDoctorRepository.findByDoctorIdAndDeletedAtIsNull(doctorId);
-    }
-
-    public Optional<HospitalDoctor> getHospitalDoctorByHospitalIdAndDeletedAtIsNull(Long hospitalId) {
-        return hospitalDoctorRepository.findByHospitalIdAndDeletedAtIsNull(hospitalId);
     }
 
     public HospitalDoctor updateHospitalDoctor(Long id, HospitalDoctor hospitalDoctor) {

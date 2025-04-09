@@ -2,8 +2,11 @@ FROM eclipse-temurin:17-jdk
 
 WORKDIR /app
 
-COPY target/api-gateway-0.0.1-SNAPSHOT.jar app.jar
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+RUN ./mvnw dependency:go-offline
 
-EXPOSE 8080
+COPY src src
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+CMD ["./mvnw", "spring-boot:run"]

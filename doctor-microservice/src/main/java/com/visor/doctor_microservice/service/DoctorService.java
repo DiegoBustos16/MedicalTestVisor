@@ -25,6 +25,10 @@ public class DoctorService {
         return doctorRepository.findAll();
     }
 
+    public Optional<Long> getDoctorIdByKeycloakId(String keycloakId) {
+        Optional<Doctor> doctor = doctorRepository.findByIdKeycloakAndDeletedAtIsNull(keycloakId);
+        return Optional.ofNullable(doctor.get().getId());
+    }
     public Optional<Doctor> getDoctorById(Long id) {
         Optional<Doctor> doctor = doctorRepository.findById(id);
         System.out.println("Buscando doctor con id " + id + ": " + doctor);

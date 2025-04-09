@@ -19,11 +19,11 @@ public class ImageFileService {
         return imageFileRepository.save(imageFile);
     }
 
-    public List<ImageFile> getImageFilesByImageStackId(Long imageStackId) {
+    public List<ImageFile> getImageFilesByImageStackId(String imageStackId) {
         return imageFileRepository.findByImageStackIdAndDeletedAtIsNull(imageStackId);
     }
 
-    public void deleteImageFile(Long id) {
+    public void deleteImageFile(String id) {
         Optional<ImageFile> imageFile = imageFileRepository.findByIdAndDeletedAtIsNull(id);
         imageFile.ifPresent(file -> {
             file.setDeletedAt(Instant.now());

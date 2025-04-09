@@ -32,10 +32,8 @@ public class Patient {
 
     private String gender;
 
-    @Column(unique = true)
     private String email;
 
-    @Column(unique = true)
     private String phoneNumber;
 
     @Column(nullable = false, updatable = false)

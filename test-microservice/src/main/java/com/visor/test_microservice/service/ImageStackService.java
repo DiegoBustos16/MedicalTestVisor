@@ -20,10 +20,10 @@ public class ImageStackService {
     }
 
     public List<ImageStack> getImageStacksByTestEntityId(String testEntityId) {
-        return imageStackRepository.findByTestEntityIdAndDeletedAtIsNull(testEntityId);
+        return imageStackRepository.findByTestIdAndDeletedAtIsNull(testEntityId);
     }
 
-    public void deleteImageStack(Long id) {
+    public void deleteImageStack(String id) {
         Optional<ImageStack> imageStack = imageStackRepository.findByIdAndDeletedAtIsNull(id);
         imageStack.ifPresent(stack -> {
             stack.setDeletedAt(Instant.now());  // Seteamos la fecha de eliminación

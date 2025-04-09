@@ -1,5 +1,12 @@
 FROM eclipse-temurin:17-jdk
+
 WORKDIR /app
-COPY target/discovery-service-0.0.1-SNAPSHOT.jar eureka-server.jar
+
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+RUN ./mvnw dependency:go-offline
+
+COPY src src
 EXPOSE 8761
-ENTRYPOINT ["java", "-jar", "eureka-server.jar"]
+CMD ["./mvnw", "spring-boot:run"]

@@ -1,11 +1,11 @@
 package com.visor.test_microservice.entity;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
@@ -17,7 +17,7 @@ import java.util.Set;
 @NoArgsConstructor
 public class ImageStack {
     @Id
-    private Long id;
+    private String id;
 
     @CreatedDate
     private Instant createdAt;
@@ -28,6 +28,6 @@ public class ImageStack {
 
     private Set<ImageFile> images = new HashSet<>();
 
-    @DBRef
-    private TestEntity testEntity;
+    @NotNull(message = "Test must not be null")
+    private String testId;
 }

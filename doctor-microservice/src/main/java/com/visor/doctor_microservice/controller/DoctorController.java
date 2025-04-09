@@ -29,20 +29,46 @@ public class DoctorController {
             @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
-
     @GetMapping
     public ResponseEntity<List<Doctor>> getAllDoctors() {
         return ResponseEntity.ok(doctorService.getAllDoctors());
     }
 
+    @Operation(summary = "Read Doctor by ID", description = "Retrieves a doctor by ID",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "404", description = "Doctor not found"),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<Doctor> getDoctorById(@PathVariable Long id) {
-        System.out.println("Buscando doctor con id " + id);
         return doctorService.getDoctorById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Read Doctor by Keycloak ID", description = "Retrieves a doctor by Keycloak ID",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "404", description = "Doctor not found"),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @GetMapping("/exist/{keycloakId}")
+    public ResponseEntity<Long> getDoctorByKeycloakId(@PathVariable String keycloakId) {
+        return doctorService.getDoctorIdByKeycloakId(keycloakId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Read Doctor by License Number", description = "Retrieves a doctor by license number",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "404", description = "Doctor not found"),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
     @GetMapping("/license/{licenseNumber}")
     public ResponseEntity<Doctor> getDoctorByLicense(@PathVariable String licenseNumber) {
         return doctorService.getDoctorByLicenseNumber(licenseNumber)
@@ -50,6 +76,13 @@ public class DoctorController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Update Doctor", description = "Updates a doctor",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "404", description = "Doctor not found"),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
     @PutMapping()
     public ResponseEntity<Doctor> updateDoctor(@RequestBody Doctor doctor) {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -57,6 +90,8 @@ public class DoctorController {
             Jwt jwt = jwtAuth.getToken();
             String keycloakId = jwt.getClaim("sub");
             Long idDoctor = doctorService.findIdbyKeycloak(keycloakId);
+            doctor.setId(idDoctor);
+            doctor.setIdKeycloak(keycloakId);
             Doctor updatedDoctor = doctorService.updateDoctor(idDoctor, doctor);
             return updatedDoctor != null ? new ResponseEntity<>(updatedDoctor, HttpStatus.OK)
                 : ResponseEntity.notFound().build();
@@ -64,6 +99,12 @@ public class DoctorController {
         return ResponseEntity.badRequest().build();
     }
 
+    @Operation(summary = "Delete Doctor", description = "Deletes a doctor by ID",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "No Content"),
+            @ApiResponse(responseCode = "404", description = "Doctor not found")
+    })
     @DeleteMapping()
     public ResponseEntity<Void> deleteDoctor() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();

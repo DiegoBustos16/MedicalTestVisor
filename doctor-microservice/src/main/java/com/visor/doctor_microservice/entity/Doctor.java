@@ -36,7 +36,7 @@ public class Doctor {
 
     private String gender;
 
-    @Column(unique = true)
+    @Column(unique = true,nullable = false)
     private String email;
 
     @Column(unique = true)

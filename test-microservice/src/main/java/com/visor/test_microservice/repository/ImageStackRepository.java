@@ -6,8 +6,8 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.List;
 import java.util.Optional;
 
-public interface ImageStackRepository extends MongoRepository<ImageStack, Long> {
-    List<ImageStack> findByTestEntityIdAndDeletedAtIsNull(String testEntityId);
+public interface ImageStackRepository extends MongoRepository<ImageStack, String> {
+    List<ImageStack> findByTestIdAndDeletedAtIsNull(String testEntityId);
 
-    Optional<ImageStack> findByIdAndDeletedAtIsNull(Long id);
+    Optional<ImageStack> findByIdAndDeletedAtIsNull(String id);
 }

@@ -22,6 +22,9 @@ public class PatientService {
         return patientRepository.save(patient);
     }
 
+    public boolean existPatientById(Long id) {
+        return patientRepository.existsPatientById(id);
+    }
     public List<Patient> getAllPatients() {
         return patientRepository.findAll();
     }

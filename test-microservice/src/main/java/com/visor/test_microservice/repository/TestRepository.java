@@ -11,5 +11,7 @@ public interface TestRepository extends MongoRepository<TestEntity, String> {
 
     Optional<TestEntity> findByIdAndDeletedAtIsNull(String id);
 
+    Optional<TestEntity> findByPassCodeAndDeletedAtIsNull(String passcode);
+
     boolean existsByIdAndDeletedAtIsNull(String id);
 }

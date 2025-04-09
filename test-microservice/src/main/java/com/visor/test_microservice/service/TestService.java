@@ -29,13 +29,26 @@ public class TestService {
         return testRepository.findByIdAndDeletedAtIsNull(id);
     }
 
-    public TestEntity updateTestEntity(String id, TestEntity testEntity) {
-        if (testRepository.existsByIdAndDeletedAtIsNull(id)) {
-            testEntity.setId(id);
-            return testRepository.save(testEntity);
-        }
-        return null;
+    public Optional<TestEntity> getTestByPasscode(String passcode) {
+        return testRepository.findByPassCodeAndDeletedAtIsNull(passcode);
     }
+
+    public TestEntity updateTestEntity(String id, TestEntity updateTestEntity) {
+        TestEntity test = testRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new RuntimeException("TestEntity not found"));
+
+        if (updateTestEntity.getPatientId() != null) {
+            test.setPatientId(updateTestEntity.getPatientId());
+        }
+
+        if (updateTestEntity.getHospitalId() != null) {
+            test.setHospitalId(updateTestEntity.getHospitalId());
+        }
+
+        return testRepository.save(test);
+    }
+
+
 
     public void deleteTestEntity(String id) {
         Optional<TestEntity> testEntity = testRepository.findByIdAndDeletedAtIsNull(id);
