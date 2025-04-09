@@ -2,6 +2,11 @@ FROM eclipse-temurin:17-jdk
 
 WORKDIR /app
 
-COPY target/doctor-microservice-0.0.1-SNAPSHOT.jar app.jar
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+RUN ./mvnw dependency:go-offline
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+COPY src src
+
+CMD ["./mvnw", "spring-boot:run"]

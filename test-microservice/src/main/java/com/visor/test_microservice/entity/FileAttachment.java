@@ -1,11 +1,11 @@
 package com.visor.test_microservice.entity;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
@@ -16,7 +16,7 @@ import java.time.Instant;
 @NoArgsConstructor
 public class FileAttachment {
     @Id
-    private Long id;
+    private String id;
 
     @CreatedDate
     private Instant createdAt;
@@ -25,8 +25,9 @@ public class FileAttachment {
 
     private String fileName;
 
-    private byte[] fileData;
+    private String fileUrl;
 
-    @DBRef
-    private TestEntity testEntity;
+    @NotNull(message = "Test must not be null")
+    private String testId;
 }
+

@@ -1,5 +1,6 @@
 package com.visor.test_microservice.service;
 
+import com.visor.test_microservice.dto.UpdateTestDTO;
 import com.visor.test_microservice.entity.TestEntity;
 import com.visor.test_microservice.repository.TestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,13 +30,21 @@ public class TestService {
         return testRepository.findByIdAndDeletedAtIsNull(id);
     }
 
-    public TestEntity updateTestEntity(String id, TestEntity testEntity) {
-        if (testRepository.existsByIdAndDeletedAtIsNull(id)) {
-            testEntity.setId(id);
-            return testRepository.save(testEntity);
-        }
-        return null;
+    public Optional<TestEntity> getTestByPasscode(String passcode) {
+        return testRepository.findByPassCodeAndDeletedAtIsNull(passcode);
     }
+
+    public TestEntity updateTestEntity(String id, UpdateTestDTO updateTestDTO) {
+        TestEntity test = testRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new RuntimeException("TestEntity not found"));
+
+        test.setAttachments(updateTestDTO.getAttachments());
+        test.setImageStacks(updateTestDTO.getImageStacks());
+
+        return testRepository.save(test);
+    }
+
+
 
     public void deleteTestEntity(String id) {
         Optional<TestEntity> testEntity = testRepository.findByIdAndDeletedAtIsNull(id);

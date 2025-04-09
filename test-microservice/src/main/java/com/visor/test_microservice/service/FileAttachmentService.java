@@ -20,10 +20,10 @@ public class FileAttachmentService {
     }
 
     public List<FileAttachment> getAttachmentsByTestEntityId(String testEntityId) {
-        return fileAttachmentRepository.findByTestEntityIdAndDeletedAtIsNull(testEntityId);
+        return fileAttachmentRepository.findByTestIdAndDeletedAtIsNull(testEntityId);
     }
 
-    public void deleteFileAttachment(Long id) {
+    public void deleteFileAttachment(String id) {
         Optional<FileAttachment> fileAttachment = fileAttachmentRepository.findByIdAndDeletedAtIsNull(id);
         fileAttachment.ifPresent(file -> {
             file.setDeletedAt(Instant.now());

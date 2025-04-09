@@ -2,6 +2,7 @@ package com.visor.doctor_microservice.configuration;
 
 import com.visor.doctor_microservice.entity.Doctor;
 import com.visor.doctor_microservice.repository.DoctorRepository;
+import com.visor.doctor_microservice.service.DoctorService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -12,24 +13,34 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.GenericFilterBean;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 public class DoctorValidationFilter extends GenericFilterBean {
 
     private final DoctorRepository doctorRepository;
 
-    public DoctorValidationFilter(DoctorRepository doctorRepository) {
+    private final DoctorService doctorService;
+    private static final List<String> HOSPITAL_ALLOWED_PATTERNS = List.of("/api/doctors", "/api/doctors/**");
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
+
+    public DoctorValidationFilter(DoctorRepository doctorRepository, DoctorService doctorService) {
         this.doctorRepository = doctorRepository;
+        this.doctorService = doctorService;
     }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
 
-        String path = ((HttpServletRequest) request).getRequestURI();
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        String path = httpRequest.getRequestURI();
+
         if (path.startsWith("/swagger-ui") ||
                 path.startsWith("/v3/api-docs") ||
                 path.startsWith("/swagger-resources") ||
@@ -46,29 +57,38 @@ public class DoctorValidationFilter extends GenericFilterBean {
             String firstName = jwt.getClaim("given_name");
             String lastName = jwt.getClaim("family_name");
 
-            try {
+            boolean isDoctor = jwtAuth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_doctor"));
+
+            boolean isHospital = jwtAuth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_hospital"));
+
+            if (isHospital && !matchesAllowedPatterns(path)) {
+                ((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Acceso restringido.");
+                return;
+            }
+
+            if (isDoctor) {
                 if (!doctorRepository.existsByIdKeycloakAndDeletedAtIsNull(keycloakId)) {
-                    if(!doctorRepository.existsByIdKeycloakAndDeletedAtIsNotNull(keycloakId)){
-                    Doctor newDoctor = new Doctor();
-                    newDoctor.setIdKeycloak(keycloakId);
-                    newDoctor.setEmail(email);
-                    newDoctor.setFirstName(firstName);
-                    newDoctor.setLastName(lastName);
-                    doctorRepository.save(newDoctor);
+                    if (!doctorRepository.existsByIdKeycloakAndDeletedAtIsNotNull(keycloakId)) {
+                        Doctor newDoctor = new Doctor();
+                        newDoctor.setIdKeycloak(keycloakId);
+                        newDoctor.setEmail(email);
+                        newDoctor.setFirstName(firstName);
+                        newDoctor.setLastName(lastName);
+                        doctorService.createDoctor(newDoctor);
                     } else {
-                        HttpServletResponse httpServletResponse = (HttpServletResponse) response;
-                        httpServletResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "El usuario ha sido eliminado.");
+                        ((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "El usuario ha sido eliminado.");
                         return;
                     }
                 }
-
-            } catch (NumberFormatException e) {
-                HttpServletResponse httpServletResponse = (HttpServletResponse) response;
-                httpServletResponse.sendError(HttpServletResponse.SC_BAD_REQUEST, "Formato de ID inválido.");
-                return;
             }
         }
 
         chain.doFilter(request, response);
+    }
+
+    private boolean matchesAllowedPatterns(String path) {
+        return HOSPITAL_ALLOWED_PATTERNS.stream().anyMatch(pattern -> pathMatcher.match(pattern, path));
     }
 }

@@ -8,6 +8,7 @@ import java.time.Instant;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -19,6 +20,15 @@ public class TestEntity {
 
     @Id
     private String id;
+
+    @NotNull(message = "Doctor must not be null")
+    private Long doctorId;
+
+    @NotNull(message = "Patient must not be null")
+    private Long patientId;
+
+    @NotNull(message = "Hospital must not be null")
+    private Long hospitalId;
 
     @CreatedDate
     private Instant createdAt;

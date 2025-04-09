@@ -49,10 +49,23 @@ public class PatientController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<Patient> getPatientById(Long id) {
+    public ResponseEntity<Patient> getPatientById(@PathVariable Long id) {
         return patientService.getPatientById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Check if Patient Exists", description = "Checks if a patient exists by ID",
+            security = @SecurityRequirement(name = "security_auth"))
+    @ApiResponses({
+            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
+            @ApiResponse(responseCode = "404", description = "Patient not found"),
+            @ApiResponse(responseCode = "500", description = "Server Error")
+    })
+    @GetMapping("/exist/{id}")
+    public ResponseEntity<Boolean> existPatientById(@PathVariable Long id) {
+        boolean exists = patientService.existPatientById(id);
+        return ResponseEntity.ok(exists);
     }
 
     @Operation(summary = "Search Patients", description = "Search patients by various attributes using QBE",
@@ -76,7 +89,7 @@ public class PatientController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<Patient> updatePatient(Long id, Patient patient) {
+    public ResponseEntity<Patient> updatePatient(@PathVariable Long id, @RequestBody Patient patient) {
         return ResponseEntity.ok(patientService.updatePatient(id, patient));
     }
 
@@ -88,7 +101,7 @@ public class PatientController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePatient(Long id) {
+    public ResponseEntity<Void> deletePatient(@PathVariable Long id) {
         patientService.deletePatient(id);
         return ResponseEntity.noContent().build();
     }

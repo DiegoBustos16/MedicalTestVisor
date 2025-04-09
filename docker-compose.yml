@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -54,7 +56,10 @@ services:
     container_name: eureka-server
     ports:
       - "8761:8761"
-  
+    volumes:
+      - ./discovery-service:/app
+      - ~/.m2:/root/.m2
+
   config-server:
     build: ./config-server
     container_name: config-server
@@ -66,6 +71,9 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     ports:
       - "8888:8888"
+    volumes:
+      - ./config-server:/app
+      - ~/.m2:/root/.m2
 
   api-gateway:
     build: ./api-gateway
@@ -78,7 +86,10 @@ services:
       - eureka-server
       - keycloak
     volumes:
-      - ./api-gateway:/app.jar
+      - ./api-gateway:/app
+      - ~/.m2:/root/.m2
+    env_file:
+      - ./api-gateway/.env
 
   test-microservice:
     build: ./test-microservice
@@ -89,7 +100,57 @@ services:
       - mongodb
       - config-server
     volumes:
-      - ./test-microservice:/app.jar
+      - ./test-microservice:/app
+      - ~/.m2:/root/.m2
+    env_file:
+      - ./test-microservice/.env
+  
+  doctor-microservice:
+    build: ./doctor-microservice
+    container_name: doctor-microservice
+    depends_on:
+      - kafka
+      - eureka-server
+      - postgres-microservices
+      - config-server
+    volumes:
+      - ./doctor-microservice:/app
+      - ~/.m2:/root/.m2
+
+  patient-microservice:
+    build: ./patient-microservice
+    container_name: patient-microservice
+    depends_on:
+      - kafka
+      - eureka-server
+      - postgres-microservices
+      - config-server
+    volumes:
+      - ./patient-microservice:/app
+      - ~/.m2:/root/.m2
+  
+  hospital-microservice:
+    build: ./hospital-microservice
+    container_name: hospital-microservice
+    depends_on:
+      - kafka
+      - eureka-server
+      - postgres-microservices
+      - config-server
+    volumes:
+      - ./hospital-microservice:/app
+      - ~/.m2:/root/.m2
+
+  postgres-microservices:
+    image: postgres:15
+    container_name: postgres-microservices
+    restart: always
+    environment:
+      POSTGRES_DB: microservices_db
+      POSTGRES_USER: microservices_user
+      POSTGRES_PASSWORD: microservices_password
+    volumes:
+      - postgres_microservices_data:/var/lib/postgresql/data
 
   mongodb:
     image: mongo:4.2
@@ -103,50 +164,6 @@ services:
       MONGO_INITDB_DATABASE: medical-test-db
     volumes:
       - mongodb_data:/data/db
-
-  doctor-microservice:
-    build: ./doctor-microservice
-    container_name: doctor-microservice
-    depends_on:
-      - kafka
-      - eureka-server
-      - postgres-microservices
-      - config-server
-    volumes:
-      - ./doctor-microservice:/app.jar
-        
-  patient-microservice:
-    build: ./patient-microservice
-    container_name: patient-microservice
-    depends_on:
-      - kafka
-      - eureka-server
-      - postgres-microservices
-      - config-server
-    volumes:
-      - ./patient-microservice:/app.jar
-  
-  hospital-microservice:
-    build: ./hospital-microservice
-    container_name: hospital-microservice
-    depends_on:
-      - kafka
-      - eureka-server
-      - postgres-microservices
-      - config-server
-    volumes:
-      - ./hospital-microservice:/app.jar
-
-  postgres-microservices:
-    image: postgres:15
-    container_name: postgres-microservices
-    restart: always
-    environment:
-      POSTGRES_DB: microservices_db
-      POSTGRES_USER: microservices_user
-      POSTGRES_PASSWORD: microservices_password
-    volumes:
-      - postgres_microservices_data:/var/lib/postgresql/data
 
 volumes:
   postgres_keycloak_data:
