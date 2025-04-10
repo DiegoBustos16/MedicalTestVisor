@@ -9,13 +9,30 @@ import io.swagger.v3.oas.annotations.security.OAuthScope;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.servers.Server;
 
-@OpenAPIDefinition(servers = { @Server(url = "http://localhost:8080")}, info = @Info(title = "Medical Tests API", description = "This lists all the Medical Tests API Calls. The Calls are OAuth2 secured, "
-        + "so please use your client ID and Secret to test them out.",
-        version = "v1.0"))
-@SecurityScheme(name = "security_auth", type = SecuritySchemeType.OAUTH2,
-        flows = @OAuthFlows(authorizationCode  = @OAuthFlow(authorizationUrl = "${openapi.oAuthFlow.authorizationUrl}", tokenUrl = "${openapi.oAuthFlow.tokenUrl}", scopes = {
-                @OAuthScope(name = "openid", description = "openid scope")
-        })))
+@OpenAPIDefinition(
+        servers = {@Server(url = "http://localhost:8080")},
+        info = @Info(
+                title = "Medical Test Microservice API",
+                version = "v1.0",
+                description = "Gestiona análisis clínicos, resultados y muestras. "
+                        + "Autenticarse usando el cliente `swagger-client` **sin client secret**, "
+                        + "y luego iniciar sesión con usuario y contraseña:\n\n"
+                        + "**Usuario:** _<COMPLETAR>_\n"
+                        + "**Contraseña:** _<COMPLETAR>_"
+        )
+)
+@SecurityScheme(
+        name = "security_auth",
+        type = SecuritySchemeType.OAUTH2,
+        flows = @OAuthFlows(
+                authorizationCode = @OAuthFlow(
+                        authorizationUrl = "${openapi.oAuthFlow.authorizationUrl}",
+                        tokenUrl = "${openapi.oAuthFlow.tokenUrl}",
+                        scopes = {
+                                @OAuthScope(name = "openid", description = "openid scope")
+                        }
+                )
+        )
+)
 public class OpenAPI3Configuration {
-
 }

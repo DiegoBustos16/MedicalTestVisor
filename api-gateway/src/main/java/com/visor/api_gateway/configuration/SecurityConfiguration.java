@@ -15,6 +15,9 @@ public class SecurityConfiguration {
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity httpSecurity) {
         httpSecurity
                 .authorizeExchange(exchanges -> exchanges.anyExchange().permitAll())
+
+                //Only commented for portfolio, because this obligates to use authentication for all exchanges with swagger
+
                 //.authorizeExchange(exchanges -> exchanges.anyExchange().authenticated())
                 //.oauth2Login(Customizer.withDefaults())
                 .csrf(ServerHttpSecurity.CsrfSpec::disable);

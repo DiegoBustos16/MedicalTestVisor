@@ -3,6 +3,7 @@ package com.visor.test_microservice.controller;
 import com.visor.test_microservice.client.DoctorClient;
 import com.visor.test_microservice.client.HospitalClient;
 import com.visor.test_microservice.client.PatientClient;
+import com.visor.test_microservice.dto.PatientTestDTO;
 import com.visor.test_microservice.entity.TestEntity;
 import com.visor.test_microservice.service.TestService;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -127,21 +128,40 @@ public class TestController {
         return test.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Read Test by Passcode", description = "Retrieves a test by passcode",
-            security = @SecurityRequirement(name = "security_auth"))
+    @Operation(
+            summary = "Get Test by Passcode",
+            description = "Retrieves a complete test by its passcode, including its image stacks with image files and any file attachments. This endpoint is public and does not require user authentication."
+    )
     @ApiResponses({
-            @ApiResponse(responseCode="200", description ="Success", content = {@Content(mediaType = "application/json")}),
-            @ApiResponse(responseCode = "404", description = "Test not found",
+            @ApiResponse(responseCode = "200", description = "Test retrieved successfully",
                     content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(value = "{\"error\": \"Test not found with given Passcode\"}")
+                            examples = @ExampleObject(
+                                    value = "{\n  \"id\": \"tst-001\",\n  \"doctorId\": 1,\n  \"patientId\": 2,\n  \"hospitalId\": 5,\n  \"createdAt\": \"2025-04-09T12:34:56Z\",\n  \"passCode\": \"ABC123\",\n  \"imageStacks\": [\n    {\n      \"id\": \"stk-001\",\n      \"stackName\": \"Femur Joint\",\n      \"createdAt\": \"2025-04-09T12:35:00Z\",\n      \"imageFiles\": [\n         {\"id\": \"img-001\", \"fileUrl\": \"https://s3.amazonaws.com/bucket/image1.jpg\", \"createdAt\": \"2025-04-09T12:35:05Z\"}\n      ]\n    }\n  ],\n  \"fileAttachments\": [\n    {\"id\": \"att-001\", \"fileName\": \"Doctor Report\", \"fileUrl\": \"https://s3.amazonaws.com/bucket/report.pdf\", \"createdAt\": \"2025-04-09T12:36:00Z\"}\n  ]\n}"
+                            )
                     )
             ),
-            @ApiResponse(responseCode = "500", description = "Server Error")
-            })
+            @ApiResponse(responseCode = "404", description = "Test not found",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Test not found for passcode 'ABC123'\"}"
+                            )
+                    )
+            ),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Unexpected error occurred while retrieving the test\"}"
+                            )
+                    )
+            )
+    })
     @GetMapping("/passcode/{passcode}")
-    public ResponseEntity<TestEntity> getTestByPasscode(@PathVariable String passcode) {
-        Optional<TestEntity> test = testService.getTestByPasscode(passcode);
-        return test.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<PatientTestDTO> getTestByPasscode(@PathVariable String passcode) {
+        PatientTestDTO patientTestDTO = testService.getPatientTestByPasscode(passcode);
+        if (patientTestDTO == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(patientTestDTO);
     }
 
     @Operation(summary = "Update Test", description = "Updates a test",

@@ -29,7 +29,6 @@ public class SecurityConfiguration {
                     ).permitAll()
 
                     // Public endpoints
-                    .requestMatchers(HttpMethod.GET, "/api/tests/patient/**").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/tests/passcode/**").permitAll()
 
                     // Doctor endpoints for modification

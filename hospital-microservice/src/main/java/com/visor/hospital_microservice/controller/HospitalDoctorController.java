@@ -3,8 +3,11 @@ package com.visor.hospital_microservice.controller;
 import com.visor.hospital_microservice.client.DoctorClient;
 import com.visor.hospital_microservice.dto.DoctorDTO;
 import com.visor.hospital_microservice.entity.HospitalDoctor;
+import com.visor.hospital_microservice.service.HospitalDoctorService;
 import com.visor.hospital_microservice.service.HospitalService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -14,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import com.visor.hospital_microservice.service.HospitalDoctorService;
 
 import java.util.Optional;
 
@@ -24,8 +26,10 @@ public class HospitalDoctorController {
 
     @Autowired
     private HospitalDoctorService hospitalDoctorService;
+
     @Autowired
     private HospitalService hospitalService;
+
     @Autowired
     private final DoctorClient doctorClient;
 
@@ -33,14 +37,37 @@ public class HospitalDoctorController {
         this.doctorClient = doctorClient;
     }
 
-    @Operation(summary = "Create Hospital-Doctor Association", description = "Creates a new association between a hospital and a doctor",
-            security = @SecurityRequirement(name = "security_auth"))
+    @Operation(
+            summary = "Create Hospital-Doctor Association",
+            description = "Creates a new association between a hospital and a doctor. The hospital is determined from the current user's Keycloak session, and the doctor is specified by the 'doctorId' parameter.",
+            security = @SecurityRequirement(name = "security_auth")
+    )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "500", description = "Server Error")
+            @ApiResponse(responseCode = "200", description = "Hospital-Doctor association created successfully",
+                    content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "403", description = "Forbidden. Hospital not found for current user",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Hospital does not exist or user is not authorized\"}"
+                            )
+                    )),
+            @ApiResponse(responseCode = "404", description = "Doctor not found",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Doctor not found\"}"
+                            )
+                    )),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Unexpected error occurred\"}"
+                            )
+                    ))
     })
     @PostMapping
-    public ResponseEntity<HospitalDoctor> createHospitalDoctorAssociation(@RequestParam Long doctorId, Authentication authentication) {
+    public ResponseEntity<HospitalDoctor> createHospitalDoctorAssociation(
+            @RequestParam Long doctorId,
+            Authentication authentication) {
         Jwt jwt = (Jwt) authentication.getPrincipal();
         String keycloakId = jwt.getSubject();
         Long hospitalIdFromJwt = hospitalService.findIdbyKeycloak(keycloakId);
@@ -48,6 +75,7 @@ public class HospitalDoctorController {
         if (hospitalIdFromJwt == null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
+        // Verifica que el doctor exista (a través del client)
         DoctorDTO doctor = doctorClient.getDoctorById(doctorId);
         if (doctor == null) {
             throw new RuntimeException("Doctor no encontrado");
@@ -56,14 +84,24 @@ public class HospitalDoctorController {
         hospitalDoctor.setHospitalId(hospitalIdFromJwt);
         hospitalDoctor.setDoctorId(doctorId);
 
-        return ResponseEntity.ok(hospitalDoctorService.createHospitalDoctor(hospitalDoctor));
+        HospitalDoctor created = hospitalDoctorService.createHospitalDoctor(hospitalDoctor);
+        return ResponseEntity.ok(created);
     }
 
-    @Operation(summary = "Read All Hospital-Doctor", description = "Retrieves all hospital-doctor associated to the user",
-            security = @SecurityRequirement(name = "security_auth"))
+    @Operation(
+            summary = "Get Hospital-Doctor Associations",
+            description = "Retrieves all hospital-doctor associations for the current user's hospital.",
+            security = @SecurityRequirement(name = "security_auth")
+    )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "404", description = "Hospital-Doctor Association not found")
+            @ApiResponse(responseCode = "200", description = "Associations retrieved successfully",
+                    content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "404", description = "No active doctor associations found",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"No active associations with doctors for this hospital.\"}"
+                            )
+                    ))
     })
     @GetMapping("")
     public ResponseEntity<?> getHospitalDoctor(Authentication authentication) {
@@ -77,17 +115,25 @@ public class HospitalDoctorController {
         var hospitalDoctors = hospitalDoctorService.getAllHospitalDoctorsByHospitalId(hospitalIdFromJwt);
         if (hospitalDoctors.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("No hay relaciones activas con doctores para este hospital.");
+                    .body("{\"error\": \"No active associations with doctors for this hospital.\"}");
         }
-
         return ResponseEntity.ok(hospitalDoctors);
     }
 
-    @Operation(summary = "Read Hospital-Doctor Association by ID", description = "Retrieves a hospital-doctor association by its ID",
-            security = @SecurityRequirement(name = "security_auth"))
+    @Operation(
+            summary = "Get Hospital-Doctor Association by ID",
+            description = "Retrieves a specific hospital-doctor association by its unique ID.",
+            security = @SecurityRequirement(name = "security_auth")
+    )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "404", description = "Hospital-Doctor Association not found")
+            @ApiResponse(responseCode = "200", description = "Association found",
+                    content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "404", description = "Association not found",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Association with ID 100 not found\"}"
+                            )
+                    ))
     })
     @GetMapping("/{id}")
     public ResponseEntity<HospitalDoctor> getHospitalDoctorById(@PathVariable Long id) {
@@ -97,36 +143,54 @@ public class HospitalDoctorController {
     }
 
     @Operation(
-            summary = "Check if Hospital-Doctor Association Exists",
-            description = "Checks if a hospital-doctor association exists by Doctor and Hospital ID",
+            summary = "Check Hospital-Doctor Association Existence",
+            description = "Checks if a hospital-doctor association exists for a given doctor and hospital pair. Returns true if found, false otherwise.",
             security = @SecurityRequirement(name = "security_auth")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "404", description = "Hospital-Doctor Association not found")
+            @ApiResponse(responseCode = "200", description = "Check completed successfully",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = "true")
+                    )),
+            @ApiResponse(responseCode = "404", description = "Association not found",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = "{\"error\": \"No association found for doctorId=1 and hospitalId=2\"}")
+                    ))
     })
     @GetMapping("/exist")
     public ResponseEntity<Boolean> existHospitalDoctorByDoctorIdAndHospitalId(
             @RequestParam Long doctorId,
             @RequestParam Long hospitalId) {
-
-        var hospitalDoctors = hospitalDoctorService.getHospitalDoctorByDoctorIdAndHospitalIdAndDeletedAtIsNull(doctorId, hospitalId);
-
-        if (hospitalDoctors.isEmpty()) {
-            return ResponseEntity.ok(false);
-        }
-
-        return ResponseEntity.ok(true);
+        var associations = hospitalDoctorService.getHospitalDoctorByDoctorIdAndHospitalIdAndDeletedAtIsNull(doctorId, hospitalId);
+        return ResponseEntity.ok(!associations.isEmpty());
     }
 
-    @Operation(summary = "Update Hospital-Doctor Association", description = "Updates an existing hospital-doctor association",
-            security = @SecurityRequirement(name = "security_auth"))
+    @Operation(
+            summary = "Update Hospital-Doctor Association",
+            description = "Updates an existing hospital-doctor association. The hospital ID is derived from the current user's Keycloak session, and the doctor information is validated via the DoctorClient.",
+            security = @SecurityRequirement(name = "security_auth")
+    )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "404", description = "Hospital-Doctor Association not found")
+            @ApiResponse(responseCode = "200", description = "Association updated successfully",
+                    content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "403", description = "Forbidden. Current user not associated with any hospital or unauthorized",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Forbidden: Hospital information not available for current user\"}"
+                            )
+                    )),
+            @ApiResponse(responseCode = "404", description = "Association not found",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Association not found for the provided ID\"}"
+                            )
+                    ))
     })
     @PutMapping("/{id}")
-    public ResponseEntity<HospitalDoctor> updateHospitalDoctor(@PathVariable Long id, @RequestBody HospitalDoctor hospitalDoctor, Authentication authentication) {
+    public ResponseEntity<HospitalDoctor> updateHospitalDoctor(
+            @PathVariable Long id,
+            @RequestBody HospitalDoctor hospitalDoctor,
+            Authentication authentication) {
         Jwt jwt = (Jwt) authentication.getPrincipal();
         String keycloakId = jwt.getSubject();
         Long hospitalIdFromJwt = hospitalService.findIdbyKeycloak(keycloakId);
@@ -134,33 +198,45 @@ public class HospitalDoctorController {
         if (hospitalIdFromJwt == null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-
+        // Validate doctor existence via DoctorClient
         DoctorDTO doctor = doctorClient.getDoctorById(hospitalDoctor.getDoctorId());
         if (doctor == null) {
             throw new RuntimeException("Doctor no encontrado");
         }
         hospitalDoctor.setHospitalId(hospitalIdFromJwt);
-        HospitalDoctor updatedHospitalDoctor = hospitalDoctorService.updateHospitalDoctor(id, hospitalDoctor);
-        if (updatedHospitalDoctor != null) {
-            return ResponseEntity.ok(updatedHospitalDoctor);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+        HospitalDoctor updated = hospitalDoctorService.updateHospitalDoctor(id, hospitalDoctor);
+        return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
     }
 
-
-    @Operation(summary = "Delete Hospital-Doctor Association", description = "Deletes a hospital-doctor association by ID",
-            security = @SecurityRequirement(name = "security_auth"))
+    @Operation(
+            summary = "Delete Hospital-Doctor Association",
+            description = "Deletes a hospital-doctor association by its ID. The association is only deleted if it belongs to the current user's hospital.",
+            security = @SecurityRequirement(name = "security_auth")
+    )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "404", description = "Hospital-Doctor Association not found")
+            @ApiResponse(responseCode = "204", description = "Association deleted successfully"),
+            @ApiResponse(responseCode = "403", description = "Forbidden. The association does not belong to the current hospital",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Forbidden: The association does not belong to your hospital\"}"
+                            )
+                    )),
+            @ApiResponse(responseCode = "404", description = "Association not found",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Association with provided ID not found\"}"
+                            )
+                    ))
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteHospitalDoctor(@PathVariable Long id, Authentication authentication) {
-        Optional<HospitalDoctor> hospitalDoctor = hospitalDoctorService.getHospitalDoctorById(id);
-        if (hospitalDoctor.isEmpty()) {
+    public ResponseEntity<Void> deleteHospitalDoctor(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Optional<HospitalDoctor> associationOpt = hospitalDoctorService.getHospitalDoctorById(id);
+        if (associationOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+        HospitalDoctor association = associationOpt.get();
         Jwt jwt = (Jwt) authentication.getPrincipal();
         String keycloakId = jwt.getSubject();
         Long hospitalIdFromJwt = hospitalService.findIdbyKeycloak(keycloakId);
@@ -168,13 +244,11 @@ public class HospitalDoctorController {
         if (hospitalIdFromJwt == null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        if (hospitalDoctor.get().getHospitalId() != hospitalIdFromJwt) {
+        if (!association.getHospitalId().equals(hospitalIdFromJwt)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         hospitalDoctorService.deleteHospitalDoctor(id);
         return ResponseEntity.noContent().build();
     }
-
-
 }

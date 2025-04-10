@@ -39,9 +39,5 @@ public class DoctorService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
-
-    public DoctorDTO getDoctorById(Long id) {
-        return doctorClient.getDoctorById(id);
-    }
 }
 
