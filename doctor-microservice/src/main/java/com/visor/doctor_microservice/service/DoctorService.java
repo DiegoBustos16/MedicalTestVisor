@@ -2,65 +2,91 @@ package com.visor.doctor_microservice.service;
 
 
 import com.visor.doctor_microservice.entity.Doctor;
+import com.visor.doctor_microservice.exception.DuplicateResourceException;
 import com.visor.doctor_microservice.repository.DoctorRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import com.visor.doctor_microservice.exception.ResourceNotFoundException;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.BeanWrapper;
+import org.springframework.beans.BeanWrapperImpl;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class DoctorService {
-    @Autowired
-    private DoctorRepository doctorRepository;
+
+    private final DoctorRepository doctorRepository;
 
     public Doctor createDoctor(Doctor doctor) {
-        return doctorRepository.save(doctor);
+        try {
+            return doctorRepository.save(doctor);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateResourceException("A doctor with this keycloakId already exists.");
+        }
     }
 
     public List<Doctor> getAllDoctors() {
-        return doctorRepository.findAll();
+        return doctorRepository.findAllByDeletedAtIsNull();
     }
 
-    public Optional<Long> getDoctorIdByKeycloakId(String keycloakId) {
-        Optional<Doctor> doctor = doctorRepository.findByIdKeycloakAndDeletedAtIsNull(keycloakId);
-        return Optional.ofNullable(doctor.get().getId());
-    }
-    public Optional<Doctor> getDoctorById(Long id) {
-        Optional<Doctor> doctor = doctorRepository.findById(id);
-        System.out.println("Buscando doctor con id " + id + ": " + doctor);
-        return doctor;
-        //return doctorRepository.findById(id);
+    public Doctor getDoctorById(Long id) {
+        return doctorRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() ->
+                new ResourceNotFoundException("No active doctor found with ID: " + id));
     }
 
-    public Optional<Doctor> getDoctorByLicenseNumber(String licenseNumber) {
-        return doctorRepository.findByLicenseNumber(licenseNumber);
+    public Doctor getDoctorByLicenseNumber(String licenseNumber) {
+        return doctorRepository.findByLicenseNumberAndDeletedAtIsNull(licenseNumber)
+                .orElseThrow(() ->
+                new ResourceNotFoundException("No active doctor found with license number: " + licenseNumber));
     }
 
-    public Long findIdbyKeycloak(String keycloakId) {
-        Optional<Doctor> doctor = doctorRepository.findByIdKeycloakAndDeletedAtIsNull(keycloakId);
-        if (doctor.isPresent()) {
-            return doctor.get().getId();
-        }
-        return null;
+    public Long getDoctorIdByKeycloakId(String keycloakId) {
+        return doctorRepository.findByIdKeycloakAndDeletedAtIsNull(keycloakId)
+                .map(Doctor::getId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("No active doctor found with Keycloak ID: " + keycloakId));
+
     }
 
-    public Doctor updateDoctor(Long id, Doctor doctor) {
-        if (doctorRepository.existsByIdAndDeletedAtIsNull(id)) {
-            doctor.setId(id);
-            return doctorRepository.save(doctor);
-        }
-        return null;
+    public Doctor patchDoctor(Long id, Doctor partialDoctor) {
+        Doctor existing = doctorRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResourceNotFoundException("No active doctor found with ID: " + id));
+
+        BeanUtils.copyProperties(partialDoctor, existing, getNullOrRestrictedProperties(partialDoctor));
+        return doctorRepository.save(existing);
     }
 
     public void deleteDoctor(Long id) {
-        Optional<Doctor> doctor = doctorRepository.findById(id);
-        doctor.ifPresent(entity -> {
-            entity.setDeletedAt(Instant.now());
-            doctorRepository.save(entity);
-        });
+        Doctor doctor = doctorRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Cannot delete. No active doctor found with ID: " + id));
+
+        doctor.setDeletedAt(Instant.now());
+        doctorRepository.save(doctor);
+    }
+
+    private String[] getNullOrRestrictedProperties(Object source) {
+        final BeanWrapper wrapper = new BeanWrapperImpl(source);
+
+        List<String> nullOrRestricted = new ArrayList<>();
+
+        for (var pd : wrapper.getPropertyDescriptors()) {
+            String propertyName = pd.getName();
+            Object value = wrapper.getPropertyValue(propertyName);
+
+            if (value == null || List.of("id", "idKeycloak", "createdAt", "deletedAt").contains(propertyName)) {
+                nullOrRestricted.add(propertyName);
+            }
+        }
+
+        return nullOrRestricted.toArray(new String[0]);
     }
 }

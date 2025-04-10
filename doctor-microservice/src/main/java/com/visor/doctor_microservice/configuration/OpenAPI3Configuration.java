@@ -14,11 +14,11 @@ import io.swagger.v3.oas.annotations.servers.Server;
         info = @Info(
                 title = "Doctor Microservice API",
                 version = "v1.0",
-                description = "Gestiona la información de los doctores registrados en el sistema. "
-                        + "Autenticarse usando el cliente `swagger-client` **sin client secret**, "
-                        + "y luego iniciar sesión con usuario y contraseña:\n\n"
-                        + "**Usuario:** _<COMPLETAR>_\n"
-                        + "**Contraseña:** _<COMPLETAR>_"
+                description = "Manages the information of doctors registered in the system. "
+                        + "Authenticate using the `swagger-client` client **without client secret**, "
+                        + "and then log in with username and password:\n\n"
+                        + "**Username:** _<TO_BE_COMPLETED>_\n"
+                        + "**Password:** _<TO_BE_COMPLETED>_"
         )
 )
 @SecurityScheme(
