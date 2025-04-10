@@ -98,7 +98,7 @@ public class DoctorController {
             return ResponseEntity.ok(doctorService.patchDoctor(idDoctor, doctor));
         }
 
-        return ResponseEntity.badRequest().build(); // No JWT token
+        return ResponseEntity.badRequest().build();
     }
 
     @Operation(summary = "Delete Doctor",
