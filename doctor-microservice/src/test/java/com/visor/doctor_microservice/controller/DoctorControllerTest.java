@@ -2,6 +2,8 @@ package com.visor.doctor_microservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.visor.doctor_microservice.entity.Doctor;
+import com.visor.doctor_microservice.exception.DuplicateResourceException;
+import com.visor.doctor_microservice.exception.ResourceNotFoundException;
 import com.visor.doctor_microservice.repository.DoctorRepository;
 import com.visor.doctor_microservice.service.DoctorService;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,9 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = DoctorController.class,
@@ -56,6 +56,8 @@ public class DoctorControllerTest {
                 .build();
     }
 
+    // --- GET /api/doctors ---
+
     @Test
     void shouldGetAllDoctors() throws Exception {
         when(doctorService.getAllDoctors()).thenReturn(List.of(sampleDoctor));
@@ -68,6 +70,8 @@ public class DoctorControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].firstName").value("Diego"));
     }
+
+    // --- GET /api/doctors/{id} ---
 
     @Test
     void shouldGetDoctorById() throws Exception {
@@ -83,6 +87,20 @@ public class DoctorControllerTest {
     }
 
     @Test
+    void shouldReturn404IfDoctorNotFoundById() throws Exception {
+        when(doctorService.getDoctorById(99L)).thenThrow(new ResourceNotFoundException("No active doctor found with ID: 99"));
+
+        mockMvc.perform(get("/api/doctors/99")
+                        .with(jwt().jwt(jwt -> {
+                            jwt.claim("sub", "keycloak-id-123");
+                            jwt.claim("realm_access", Map.of("roles", List.of("DOCTOR")));
+                        })))
+                .andExpect(status().isNotFound());
+    }
+
+    // --- GET /api/doctors/license/{licenseNumber} ---
+
+    @Test
     void shouldGetDoctorByLicense() throws Exception {
         when(doctorService.getDoctorByLicenseNumber("ABC123")).thenReturn(sampleDoctor);
 
@@ -96,6 +114,20 @@ public class DoctorControllerTest {
     }
 
     @Test
+    void shouldReturn404IfDoctorNotFoundByLicense() throws Exception {
+        when(doctorService.getDoctorByLicenseNumber("XYZ999")).thenThrow(new ResourceNotFoundException("No active doctor found with license number: XYZ999"));
+
+        mockMvc.perform(get("/api/doctors/license/XYZ999")
+                        .with(jwt().jwt(jwt -> {
+                            jwt.claim("sub", "keycloak-id-123");
+                            jwt.claim("realm_access", Map.of("roles", List.of("DOCTOR")));
+                        })))
+                .andExpect(status().isNotFound());
+    }
+
+    // --- GET /api/doctors/exist/{keycloakId} ---
+
+    @Test
     void shouldGetDoctorIdByKeycloakId() throws Exception {
         when(doctorService.getDoctorIdByKeycloakId("keycloak-id-123")).thenReturn(1L);
 
@@ -107,6 +139,20 @@ public class DoctorControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string("1"));
     }
+
+    @Test
+    void shouldReturn404IfDoctorNotFoundByKeycloakId() throws Exception {
+        when(doctorService.getDoctorIdByKeycloakId("unknown-keycloak-id")).thenThrow(new ResourceNotFoundException("No active doctor found with Keycloak ID: unknown-keycloak-id"));
+
+        mockMvc.perform(get("/api/doctors/exist/unknown-keycloak-id")
+                        .with(jwt().jwt(jwt -> {
+                            jwt.claim("sub", "keycloak-id-123");
+                            jwt.claim("realm_access", Map.of("roles", List.of("DOCTOR")));
+                        })))
+                .andExpect(status().isNotFound());
+    }
+
+    // --- PATCH /api/doctors ---
 
     @Test
     void shouldUpdateDoctor() throws Exception {
@@ -134,6 +180,31 @@ public class DoctorControllerTest {
     }
 
     @Test
+    void shouldReturn400IfInvalidDoctorData() throws Exception {
+        Doctor invalidDoctor = Doctor.builder()
+                .id(1L)
+                .idKeycloak("keycloak-id-123")
+                .licenseNumber("ABC123")
+                .firstName("")
+                .lastName("Bustos")
+                .email("invalidemail")
+                .build();
+
+        when(doctorService.getDoctorIdByKeycloakId("keycloak-id-123")).thenReturn(1L);
+
+        mockMvc.perform(patch("/api/doctors")
+                        .with(jwt().jwt(jwt -> {
+                            jwt.claim("sub", "keycloak-id-123");
+                            jwt.claim("realm_access", Map.of("roles", List.of("DOCTOR")));
+                        }))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidDoctor)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // --- DELETE /api/doctors ---
+
+    @Test
     void shouldDeleteDoctor() throws Exception {
         when(doctorService.getDoctorIdByKeycloakId("keycloak-id-123")).thenReturn(1L);
 
@@ -143,5 +214,18 @@ public class DoctorControllerTest {
                             jwt.claim("realm_access", Map.of("roles", List.of("DOCTOR")));
                         })))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void shouldReturn404IfDoctorNotFoundWhenDeleting() throws Exception {
+        when(doctorService.getDoctorIdByKeycloakId("keycloak-id-123"))
+                .thenThrow(new ResourceNotFoundException("No active doctor found with Keycloak ID: keycloak-id-123"));
+
+        mockMvc.perform(delete("/api/doctors")
+                        .with(jwt().jwt(jwt -> {
+                            jwt.claim("sub", "keycloak-id-123");
+                            jwt.claim("realm_access", Map.of("roles", List.of("DOCTOR")));
+                        })))
+                .andExpect(status().isNotFound());
     }
 }

@@ -46,6 +46,7 @@ public class DoctorServiceTest {
                 .build();
     }
 
+    // POST /doctors
     @Test
     void createDoctor_shouldReturnDoctor_whenSuccessful() {
         when(doctorRepository.save(doctor)).thenReturn(doctor);
@@ -59,6 +60,7 @@ public class DoctorServiceTest {
         assertThrows(DuplicateResourceException.class, () -> doctorService.createDoctor(doctor));
     }
 
+    // GET /doctors
     @Test
     void getAllDoctors_shouldReturnList() {
         when(doctorRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(doctor));
@@ -67,6 +69,7 @@ public class DoctorServiceTest {
         assertEquals("Diego", result.get(0).getFirstName());
     }
 
+    // GET /doctors/{id}
     @Test
     void getDoctorById_shouldReturnDoctor() {
         when(doctorRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(doctor));
@@ -80,6 +83,7 @@ public class DoctorServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> doctorService.getDoctorById(1L));
     }
 
+    // GET /doctors/license/{licenseNumber}
     @Test
     void getDoctorByLicenseNumber_shouldReturnDoctor() {
         when(doctorRepository.findByLicenseNumberAndDeletedAtIsNull("LIC123")).thenReturn(Optional.of(doctor));
@@ -93,6 +97,7 @@ public class DoctorServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> doctorService.getDoctorByLicenseNumber("XYZ"));
     }
 
+    // GET /doctors/keycloak/{idKeycloak}
     @Test
     void getDoctorIdByKeycloakId_shouldReturnId() {
         when(doctorRepository.findByIdKeycloakAndDeletedAtIsNull("keycloak-id")).thenReturn(Optional.of(doctor));
@@ -106,6 +111,7 @@ public class DoctorServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> doctorService.getDoctorIdByKeycloakId("wrong-id"));
     }
 
+    // PATCH /doctors/{id}
     @Test
     void patchDoctor_shouldUpdateNonNullFields() {
         Doctor partial = new Doctor();
@@ -124,6 +130,7 @@ public class DoctorServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> doctorService.patchDoctor(1L, new Doctor()));
     }
 
+    // DELETE /doctors/{id}
     @Test
     void deleteDoctor_shouldSetDeletedAt() {
         when(doctorRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(doctor));
