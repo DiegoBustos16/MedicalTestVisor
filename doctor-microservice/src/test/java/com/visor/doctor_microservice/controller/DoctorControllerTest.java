@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -202,6 +203,14 @@ public class DoctorControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void shouldReturn403IfNoJwtAuthenticationWhenUpdating() throws Exception {
+        mockMvc.perform(patch("/api/doctors")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleDoctor)))
+                .andExpect(status().isForbidden());
+    }
+
     // --- DELETE /api/doctors ---
 
     @Test
@@ -227,5 +236,11 @@ public class DoctorControllerTest {
                             jwt.claim("realm_access", Map.of("roles", List.of("DOCTOR")));
                         })))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturn403IfNoJwtAuthenticationWhenDeleting() throws Exception {
+        mockMvc.perform(delete("/api/doctors"))
+                .andExpect(status().isForbidden());
     }
 }

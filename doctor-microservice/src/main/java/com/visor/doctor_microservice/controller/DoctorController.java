@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -98,7 +99,7 @@ public class DoctorController {
             return ResponseEntity.ok(doctorService.patchDoctor(idDoctor, doctor));
         }
 
-        return ResponseEntity.badRequest().build();
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
     @Operation(summary = "Delete Doctor",
@@ -120,6 +121,6 @@ public class DoctorController {
             return ResponseEntity.noContent().build();
         }
 
-        return ResponseEntity.badRequest().build();
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 }
