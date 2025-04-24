@@ -42,8 +42,12 @@ public class DoctorController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Doctor found"),
+            @ApiResponse(responseCode = "400", description = "Invalid doctor ID",
+                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"Invalid doctor ID format\"}"))),
             @ApiResponse(responseCode = "404", description = "Doctor not found",
-                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"No active doctor found with ID: 5\"}")))
+                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"No active doctor found with ID: 5\"}"))),
+            @ApiResponse(responseCode = "500", description = "Unexpected error",
+                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"Internal Server Error\"}")))
     })
     @GetMapping("/{id}")
     public ResponseEntity<Doctor> getDoctorById(@PathVariable Long id) {
@@ -56,7 +60,9 @@ public class DoctorController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Doctor ID retrieved"),
             @ApiResponse(responseCode = "404", description = "Doctor not found for Keycloak ID",
-                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"No active doctor found with Keycloak ID: abc-123\"}")))
+                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"No active doctor found with Keycloak ID: abc-123\"}"))),
+            @ApiResponse(responseCode = "500", description = "Unexpected error",
+                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"Internal Server Error\"}")))
     })
     @GetMapping("/exist/{keycloakId}")
     public ResponseEntity<Long> getDoctorByKeycloakId(@PathVariable String keycloakId) {
@@ -69,7 +75,9 @@ public class DoctorController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Doctor found"),
             @ApiResponse(responseCode = "404", description = "Doctor not found for license",
-                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"No active doctor found with license number: ABC123\"}")))
+                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"No active doctor found with license number: ABC123\"}"))),
+            @ApiResponse(responseCode = "500", description = "Unexpected error",
+                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"Internal Server Error\"}")))
     })
     @GetMapping("/license/{licenseNumber}")
     public ResponseEntity<Doctor> getDoctorByLicense(@PathVariable String licenseNumber) {
@@ -83,44 +91,37 @@ public class DoctorController {
             @ApiResponse(responseCode = "200", description = "Doctor updated successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid doctor data",
                     content = @Content(examples = @ExampleObject(value = "{\"message\": \"firstName: must not be blank, email: must be a valid format\"}"))),
-            @ApiResponse(responseCode = "404", description = "Doctor not found")
+            @ApiResponse(responseCode = "403", description = "Forbidden - No JWT token provided or invalid token"),
+            @ApiResponse(responseCode = "404", description = "Doctor not found"),
+            @ApiResponse(responseCode = "500", description = "Unexpected error",
+                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"Internal Server Error\"}")))
     })
     @PatchMapping
     public ResponseEntity<Doctor> updateDoctor(@Valid @RequestBody Doctor doctor) {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        String keycloakId = ((JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication()).getToken().getSubject();
+        Long idDoctor = doctorService.getDoctorIdByKeycloakId(keycloakId);
 
-        if (authentication instanceof JwtAuthenticationToken jwtAuth) {
-            String keycloakId = jwtAuth.getToken().getSubject();
-            Long idDoctor = doctorService.getDoctorIdByKeycloakId(keycloakId);
+        doctor.setId(idDoctor);
+        doctor.setIdKeycloak(keycloakId);
 
-            doctor.setId(idDoctor);
-            doctor.setIdKeycloak(keycloakId);
-
-            return ResponseEntity.ok(doctorService.patchDoctor(idDoctor, doctor));
-        }
-
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        return ResponseEntity.ok(doctorService.patchDoctor(idDoctor, doctor));
     }
 
     @Operation(summary = "Delete Doctor",
             description = "Deletes the currently authenticated doctor based on the Keycloak token.",
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Doctor deleted successfully"),
-            @ApiResponse(responseCode = "404", description = "Doctor not found")
+            @ApiResponse(responseCode = "200", description = "Doctor deleted successfully"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - No JWT token provided or invalid token"),
+            @ApiResponse(responseCode = "404", description = "Doctor not found"),
+            @ApiResponse(responseCode = "500", description = "Unexpected error",
+                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"Internal Server Error\"}")))
     })
     @DeleteMapping
     public ResponseEntity<Void> deleteDoctor() {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication instanceof JwtAuthenticationToken jwtAuth) {
-            String keycloakId = jwtAuth.getToken().getSubject();
+            String keycloakId = ((JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication()).getToken().getSubject();
             Long idDoctor = doctorService.getDoctorIdByKeycloakId(keycloakId);
-
             doctorService.deleteDoctor(idDoctor);
-            return ResponseEntity.noContent().build();
-        }
-
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            return ResponseEntity.ok().build();
     }
 }
