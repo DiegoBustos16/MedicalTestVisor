@@ -34,14 +34,6 @@ class DoctorServiceTest {
     @InjectMocks
     private DoctorService doctorService;
 
-
-    @BeforeEach
-    void setUp() {
-        doctorClient = mock(DoctorClient.class);
-        hospitalDoctorRepository = mock(HospitalDoctorRepository.class);
-        doctorService = new DoctorService(doctorClient, hospitalDoctorRepository);
-    }
-
     @Nested
     @DisplayName("getAllDoctorsByHospital")
     class GetAllDoctorsByHospital {

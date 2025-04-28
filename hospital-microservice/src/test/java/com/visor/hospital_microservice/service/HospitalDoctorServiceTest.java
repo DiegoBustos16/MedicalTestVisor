@@ -34,12 +34,6 @@ class HospitalDoctorServiceTest {
     @InjectMocks
     private HospitalDoctorService hospitalDoctorService;
 
-    @BeforeEach
-    void setUp() {
-        openMocks(this);
-    }
-
-
     @Nested
     @DisplayName("Create HospitalDoctor")
     class CreateHospitalDoctorTests {
