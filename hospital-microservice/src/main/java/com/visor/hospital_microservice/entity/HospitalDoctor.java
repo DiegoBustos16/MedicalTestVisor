@@ -3,6 +3,7 @@ package com.visor.hospital_microservice.entity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.Instant;
 
@@ -24,9 +25,13 @@ public class HospitalDoctor {
     @Schema(accessMode = Schema.AccessMode.READ_ONLY)
     private Instant deletedAt;
 
+    @NotNull(message = "hospitalId is required")
+    @Column(nullable = false)
     @Schema(example = "1")
     private Long hospitalId;
 
+    @NotNull(message = "doctorId is required")
+    @Column(nullable = false)
     @Schema(example = "1")
     private Long doctorId;
 

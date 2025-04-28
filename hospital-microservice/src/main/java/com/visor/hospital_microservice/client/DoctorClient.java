@@ -6,6 +6,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @FeignClient(
         name = "doctor-microservice",
@@ -13,5 +14,5 @@ import java.util.List;
 )
 public interface DoctorClient {
     @GetMapping("/api/doctors/{id}")
-    DoctorDTO getDoctorById(@PathVariable("id") Long id);
+    Optional<DoctorDTO> getDoctorById(@PathVariable("id") Long id);
 }
