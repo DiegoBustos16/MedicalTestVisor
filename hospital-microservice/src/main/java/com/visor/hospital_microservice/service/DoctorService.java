@@ -3,6 +3,7 @@ package com.visor.hospital_microservice.service;
 import com.visor.hospital_microservice.client.DoctorClient;
 import com.visor.hospital_microservice.dto.DoctorDTO;
 import com.visor.hospital_microservice.entity.HospitalDoctor;
+import com.visor.hospital_microservice.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.visor.hospital_microservice.repository.HospitalDoctorRepository;
@@ -29,13 +30,9 @@ public class DoctorService {
                 .findAllByHospitalIdAndDeletedAtIsNull(hospitalId);
 
         return relations.stream()
-                .map(relation -> {
-                    try {
-                        return doctorClient.getDoctorById(relation.getDoctorId());
-                    } catch (Exception e) {
-                        return null;
-                    }
-                })
+                .map(relation -> doctorClient.getDoctorById(relation.getDoctorId())
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException("No active doctor found with ID: " + relation.getDoctorId())))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }

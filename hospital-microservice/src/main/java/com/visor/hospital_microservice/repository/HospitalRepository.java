@@ -10,7 +10,7 @@ public interface HospitalRepository extends JpaRepository<Hospital, Long> {
 
     boolean existsByIdKeycloakAndDeletedAtIsNotNull(String id);
 
-    boolean existsByIdAndDeletedAtIsNull(Long id);
+    Optional<Hospital> findByIdAndDeletedAtIsNull(Long id);
 
     Optional<Hospital> findByIdKeycloakAndDeletedAtIsNull(String id);
 }

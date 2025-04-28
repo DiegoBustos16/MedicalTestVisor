@@ -8,11 +8,14 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,8 +24,11 @@ import java.util.List;
 @RequestMapping("/api/hospitals")
 public class HospitalController {
 
-    @Autowired
-    private HospitalService hospitalService;
+    private final HospitalService hospitalService;
+
+    public HospitalController(HospitalService hospitalService) {
+        this.hospitalService = hospitalService;
+    }
 
     @Operation(
             summary = "Get All Hospitals",
@@ -53,19 +59,22 @@ public class HospitalController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Hospital found",
                     content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "400", description = "Invalid hospital ID",
+                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"Invalid hospital ID format\"}"))),
             @ApiResponse(responseCode = "404", description = "Hospital not found",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
                                     value = "{\"error\": \"Hospital with ID 10 not found\"}"
                             )
-                    ))
+                    )),
+            @ApiResponse(responseCode = "500", description = "Unexpected error",
+            content = @Content(examples = @ExampleObject(value = "{\"message\": \"Internal Server Error\"}")))
+
     })
     @GetMapping("/{id}")
     public ResponseEntity<Hospital> getHospitalById(
             @PathVariable Long id) {
-        return hospitalService.getHospitalById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(hospitalService.getHospitalById(id));
     }
 
     @Operation(
@@ -76,6 +85,8 @@ public class HospitalController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Hospital updated successfully",
                     content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "400", description = "Invalid hospital data",
+                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"email: must be a valid format\"}"))),
             @ApiResponse(responseCode = "403", description = "Forbidden. The current user is not associated with any hospital or does not have permission",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
@@ -87,27 +98,22 @@ public class HospitalController {
                             examples = @ExampleObject(
                                     value = "{\"error\": \"Hospital with given keycloak ID not found\"}"
                             )
-                    ))
+                    )),
+            @ApiResponse(responseCode = "500", description = "Unexpected error",
+                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"Internal Server Error\"}")))
     })
-    @PutMapping
+    @PatchMapping
     public ResponseEntity<Hospital> updateHospital(
-            @RequestBody Hospital hospital,
-            Authentication authentication) {
-        Jwt jwt = (Jwt) authentication.getPrincipal();
-        String keycloakId = jwt.getSubject();
-        Long hospitalIdFromJwt = hospitalService.findIdbyKeycloak(keycloakId);
+            @Valid @RequestBody Hospital hospital) {
 
-        if (hospitalIdFromJwt == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(null);
-        }
+        String keycloakId = ((JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication()).getToken().getSubject();
+        Long hospitalIdFromJwt = hospitalService.getHospitalIdByKeycloakId(keycloakId);
 
         hospital.setId(hospitalIdFromJwt);
         hospital.setIdKeycloak(keycloakId);
-        Hospital updatedHospital = hospitalService.updateHospital(hospitalIdFromJwt, hospital);
-        return updatedHospital != null
-                ? ResponseEntity.ok(updatedHospital)
-                : ResponseEntity.notFound().build();
+
+        return ResponseEntity.ok(hospitalService.patchHospital(hospitalIdFromJwt, hospital));
+
     }
 
     @Operation(
@@ -116,7 +122,7 @@ public class HospitalController {
             security = @SecurityRequirement(name = "security_auth")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Hospital deleted successfully"),
+            @ApiResponse(responseCode = "200", description = "Hospital deleted successfully"),
             @ApiResponse(responseCode = "403", description = "Forbidden. The current user is not associated with any hospital",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
@@ -128,19 +134,16 @@ public class HospitalController {
                             examples = @ExampleObject(
                                     value = "{\"error\": \"Hospital not found for given Keycloak ID\"}"
                             )
-                    ))
+                    )),
+            @ApiResponse(responseCode = "500", description = "Unexpected error",
+                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"Internal Server Error\"}")))
     })
     @DeleteMapping
     public ResponseEntity<Void> deleteHospital(Authentication authentication) {
-        Jwt jwt = (Jwt) authentication.getPrincipal();
-        String keycloakId = jwt.getSubject();
-        Long hospitalIdFromJwt = hospitalService.findIdbyKeycloak(keycloakId);
-
-        if (hospitalIdFromJwt == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+        String keycloakId = ((JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication()).getToken().getSubject();
+        Long hospitalIdFromJwt = hospitalService.getHospitalIdByKeycloakId(keycloakId);
 
         hospitalService.deleteHospital(hospitalIdFromJwt);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }

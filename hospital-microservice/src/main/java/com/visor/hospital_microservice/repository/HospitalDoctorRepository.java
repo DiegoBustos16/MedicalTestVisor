@@ -11,9 +11,7 @@ public interface HospitalDoctorRepository extends JpaRepository<HospitalDoctor, 
 
     Optional<HospitalDoctor> findByDoctorIdAndHospitalIdAndDeletedAtIsNull (Long doctorId, Long hospitalId);
 
-    Optional<HospitalDoctor> findByDoctorIdAndDeletedAtIsNull (Long doctorId);
-
-    Optional<HospitalDoctor> findByHospitalIdAndDeletedAtIsNull (Long hospitalId);
+    Optional<HospitalDoctor> findByIdAndDeletedAtIsNull (Long hospitalDoctorId);
 
     List<HospitalDoctor> findAllByHospitalIdAndDeletedAtIsNull(Long hospitalId);
 }

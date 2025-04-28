@@ -13,7 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -59,14 +61,10 @@ public class DoctorController {
             )
     })
     @GetMapping("/hospital")
-    public ResponseEntity<List<DoctorDTO>> getAllDoctorsByHospital(Authentication authentication) {
-        Jwt jwt = (Jwt) authentication.getPrincipal();
-        String keycloakId = jwt.getSubject();
-        Long hospitalIdFromJwt = hospitalService.findIdbyKeycloak(keycloakId);
+    public ResponseEntity<List<DoctorDTO>> getAllDoctorsByHospital() {
+        String keycloakId = ((JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication()).getToken().getSubject();
+        Long hospitalIdFromJwt = hospitalService.getHospitalIdByKeycloakId(keycloakId);
 
-        if (hospitalIdFromJwt == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
         List<DoctorDTO> doctors = doctorService.getAllDoctorsByHospital(hospitalIdFromJwt);
         return ResponseEntity.ok(doctors);
     }
