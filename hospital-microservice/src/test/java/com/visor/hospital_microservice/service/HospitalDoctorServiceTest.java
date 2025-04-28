@@ -6,7 +6,6 @@ import com.visor.hospital_microservice.entity.HospitalDoctor;
 import com.visor.hospital_microservice.exception.ResourceNotFoundException;
 import com.visor.hospital_microservice.repository.HospitalDoctorRepository;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,7 +20,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.MockitoAnnotations.openMocks;
 
 @ExtendWith(MockitoExtension.class)
 class HospitalDoctorServiceTest {

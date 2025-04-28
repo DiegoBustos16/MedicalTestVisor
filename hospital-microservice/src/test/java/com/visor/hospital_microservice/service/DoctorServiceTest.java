@@ -6,7 +6,6 @@ import com.visor.hospital_microservice.dto.DoctorDTO;
 import com.visor.hospital_microservice.entity.HospitalDoctor;
 import com.visor.hospital_microservice.exception.ResourceNotFoundException;
 import com.visor.hospital_microservice.repository.HospitalDoctorRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
