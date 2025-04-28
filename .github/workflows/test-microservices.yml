@@ -22,9 +22,21 @@ jobs:
       - name: Detect modified microservices
         id: changes
         run: |
-          echo "services=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -oE '^[^/]+(?=/)' | sort -u | grep -E '(doctor-microservice|hospital-microservice|patient-microservice|test-microservice)' | uniq | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "Pull request detected."
+            git fetch origin main
+            diff_base="origin/main"
+          else
+            echo "Push detected."
+            diff_base="${{ github.event.before }}"
+          fi
+
+          services=$(git diff --name-only $diff_base ${{ github.sha }} | grep -oE '^[^/]+(?=/)' | sort -u | grep -E '(doctor-microservice|hospital-microservice|patient-microservice|test-microservice)' | uniq | tr '\n' ' ')
+          
+          echo "services=$services" >> $GITHUB_OUTPUT
 
       - name: Run tests on modified services
+        if: ${{ steps.changes.outputs.services != '' }}
         run: |
           for service in ${{ steps.changes.outputs.services }}; do
             echo "Testing $service..."
