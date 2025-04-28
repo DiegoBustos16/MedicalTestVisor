@@ -10,6 +10,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -17,11 +22,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class DoctorServiceTest {
 
-    private DoctorService doctorService;
+    @Mock
     private DoctorClient doctorClient;
+
+    @Mock
     private HospitalDoctorRepository hospitalDoctorRepository;
+
+    @InjectMocks
+    private DoctorService doctorService;
+
 
     @BeforeEach
     void setUp() {
