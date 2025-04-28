@@ -48,8 +48,8 @@ jobs:
             exit 0
           fi
 
-          services=$(echo "$modified_files" | grep -oE '^[^/]+(?=/)' | sort -u | grep -E '.+-microservice$' | uniq | tr '\n' ' ')
-
+          services=$(echo "$modified_files" | sed -n 's|^\([^/]*\)/.*|\1|p' | sort -u | grep -E '.+-microservice$' | uniq | tr '\n' ' ')
+         
           echo "Detected services: $services"
           echo "services=$services" >> $GITHUB_OUTPUT
 
