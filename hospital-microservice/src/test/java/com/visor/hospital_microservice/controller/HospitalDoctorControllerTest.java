@@ -261,7 +261,7 @@ public class HospitalDoctorControllerTest {
                 .andExpect(status().isInternalServerError());
     }
 
-    // --- PATCH /api/hospitals/hospital-doctor/{id} ---
+    // --- PUT /api/hospitals/hospital-doctor/{id} ---
     @Test
     void shouldUpdateHospitalDoctor() throws Exception {
         HospitalDoctor updatedHospitalDoctor = HospitalDoctor.builder()

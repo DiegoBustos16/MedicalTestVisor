@@ -6,6 +6,7 @@ import com.visor.hospital_microservice.entity.HospitalDoctor;
 import com.visor.hospital_microservice.exception.ResourceNotFoundException;
 import com.visor.hospital_microservice.repository.HospitalDoctorRepository;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.*;
 import static org.mockito.BDDMockito.given;
 
@@ -127,6 +129,7 @@ class HospitalDoctorServiceTest {
             List<HospitalDoctor> result = hospitalDoctorService.getAllHospitalDoctorsByHospitalId(hospitalId);
 
             assertThat(result)
+                    .asInstanceOf(InstanceOfAssertFactories.list(HospitalDoctor.class))
                     .isNotEmpty()
                     .hasSize(1)
                     .extracting(HospitalDoctor::getId)
@@ -222,6 +225,43 @@ class HospitalDoctorServiceTest {
             assertThatThrownBy(() -> hospitalDoctorService.updateHospitalDoctor(id, input, hospitalIdFromJwt))
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessageContaining("No active hospitalDoctor found with ID: " + id);
+        }
+    }
+
+    @Nested
+    @DisplayName("Delete HospitalDoctor")
+    class DeleteHospitalTests {
+
+        @Test
+        @DisplayName("should set deletedAt timestamp when deleting hospitalDoctor")
+        void deleteHospitalDoctor_shouldSetDeletedAt() {
+            Long idHospitalDoctor = 1L;
+            Long hospitalIdFromJwt = 10L;
+
+            HospitalDoctor existing = new HospitalDoctor();
+            existing.setId(idHospitalDoctor);
+            existing.setHospitalId(hospitalIdFromJwt);
+
+            given(hospitalDoctorRepository.findByIdAndDeletedAtIsNull(idHospitalDoctor)).willReturn(Optional.of(existing));
+            given(hospitalDoctorRepository.save(any(HospitalDoctor.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+            HospitalDoctor result = hospitalDoctorService.deleteHospitalDoctor(idHospitalDoctor, hospitalIdFromJwt);
+
+            assertThat(result.getDeletedAt()).isNotNull();
+            verify(hospitalDoctorRepository).save(existing);
+        }
+
+        @Test
+        @DisplayName("should throw ResourceNotFoundException when deleting non-existent hospitalDoctor")
+        void deleteHospitalDoctor_shouldThrow_whenNotFound() {
+            Long idHospitalDoctor = 2L;
+            Long hospitalIdFromJwt = 20L;
+
+            given(hospitalDoctorRepository.findByIdAndDeletedAtIsNull(idHospitalDoctor)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> hospitalDoctorService.deleteHospitalDoctor(idHospitalDoctor, hospitalIdFromJwt))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("Cannot delete. No active hospitalDoctor found with ID: " + idHospitalDoctor);
         }
     }
 
