@@ -123,8 +123,6 @@ public class TestController {
                             )
                     )
             ),
-            @ApiResponse(responseCode = "400", description = "Invalid test passcode",
-                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"Invalid test passcode format\"}"))),
             @ApiResponse(responseCode = "404", description = "Test not found",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
@@ -174,8 +172,6 @@ public class TestController {
             security = @SecurityRequirement(name = "security_auth"))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Test deleted successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid test ID",
-                    content = @Content(examples = @ExampleObject(value = "{\"message\": \"Invalid test ID format\"}"))),
             @ApiResponse(responseCode = "404", description = "Test not found",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(value = "{\"error\": \"Test not found with given ID\"}")
