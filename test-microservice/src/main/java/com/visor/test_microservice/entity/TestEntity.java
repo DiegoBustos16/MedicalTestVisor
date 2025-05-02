@@ -1,18 +1,19 @@
 package com.visor.test_microservice.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import java.time.Instant;
-
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-import jakarta.validation.constraints.NotNull;
+
+import java.time.Instant;
+
 @Document(collection = "tests")
 @Getter
 @Setter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor
 public class TestEntity {
 
