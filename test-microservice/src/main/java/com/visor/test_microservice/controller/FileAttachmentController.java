@@ -2,30 +2,25 @@ package com.visor.test_microservice.controller;
 
 import com.visor.test_microservice.entity.FileAttachment;
 import com.visor.test_microservice.service.FileAttachmentService;
-import com.visor.test_microservice.service.S3Service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/tests/file-attachments")
 public class FileAttachmentController {
 
-    @Autowired
-    private FileAttachmentService fileAttachmentService;
-
-    @Autowired
-    private S3Service s3Service;
+    private final FileAttachmentService fileAttachmentService;
 
     @Operation(
             summary = "Upload File Attachment",
@@ -33,7 +28,7 @@ public class FileAttachmentController {
             security = @SecurityRequirement(name = "security_auth")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "File uploaded and saved successfully",
+            @ApiResponse(responseCode = "200", description = "File uploaded and saved successfully",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "400", description = "Invalid request",
                     content = @Content(mediaType = "application/json",
@@ -41,30 +36,33 @@ public class FileAttachmentController {
                                     value = "{\"error\": \"Missing file or testId\"}"
                             )
                     )),
+            @ApiResponse(responseCode = "404", description = "Resource not found",
+                    content = @Content(mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            value = "{\"error\": \"Test with given Id does not exist or is deleted\"}")
+                            }
+                    )
+            ),
             @ApiResponse(responseCode = "500", description = "Internal server error during upload",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
                                     value = "{\"error\": \"Error uploading file to S3\"}"
                             )
-                    ))
+                    )),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{error: Internal Server Error}"
+                            )
+                    )
+            )
     })
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<?> saveFileAttachment(
             @RequestParam("file") MultipartFile file,
             @RequestParam("testId") String testId) {
-
-        FileAttachment fileAttachment = new FileAttachment();
-        try {
-            String url = s3Service.uploadFile(file);
-            fileAttachment.setFileUrl(url);
-            fileAttachment.setTestId(testId);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("{\"error\": \"Error uploading file to S3\"}");
-        }
-
-        FileAttachment savedFile = fileAttachmentService.saveFileAttachment(fileAttachment);
-        return new ResponseEntity<>(savedFile, HttpStatus.CREATED);
+        return ResponseEntity.ok(fileAttachmentService.saveFileAttachment(file, testId));
     }
 
     @Operation(
@@ -80,12 +78,18 @@ public class FileAttachmentController {
                             examples = @ExampleObject(
                                     value = "{\"error\": \"No file attachments found for test ID 'abc123'\"}"
                             )
-                    ))
+                    )),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Internal Server Error\"}"
+                            )
+                    )
+            )
     })
     @GetMapping("/test/{testEntityId}")
     public ResponseEntity<List<FileAttachment>> getAttachmentsByTestEntityId(@PathVariable String testEntityId) {
-        List<FileAttachment> attachments = fileAttachmentService.getAttachmentsByTestEntityId(testEntityId);
-        return new ResponseEntity<>(attachments, HttpStatus.OK);
+        return ResponseEntity.ok(fileAttachmentService.getAttachmentsByTestEntityId(testEntityId));
     }
 
     @Operation(
@@ -94,17 +98,24 @@ public class FileAttachmentController {
             security = @SecurityRequirement(name = "security_auth")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Attachment deleted successfully"),
+            @ApiResponse(responseCode = "200", description = "Attachment deleted successfully"),
             @ApiResponse(responseCode = "404", description = "Attachment not found",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
                                     value = "{\"error\": \"File attachment with ID 'xyz789' not found\"}"
                             )
-                    ))
+                    )),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Internal Server Error\"}"
+                            )
+                    )
+            )
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFileAttachment(@PathVariable String id) {
         fileAttachmentService.deleteFileAttachment(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }

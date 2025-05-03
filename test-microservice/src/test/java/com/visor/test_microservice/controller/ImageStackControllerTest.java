@@ -74,7 +74,7 @@ public class ImageStackControllerTest {
     }
 
     @Test
-    void shouldReturn400ForInvalidImageStackData() throws Exception {
+    void shouldReturn400ForInvalidImageStackDataWhenCreatingImageStack() throws Exception {
         ImageStack invalidImageStack = new ImageStack();
 
         mockMvc.perform(post("/api/tests/image-stacks")
@@ -89,7 +89,7 @@ public class ImageStackControllerTest {
     }
 
     @Test
-    void shouldReturn404ForNonExistentTestId() throws Exception {
+    void shouldReturn404ForNonExistentTestIdWhenCreatingImageStack() throws Exception {
         when(imageStackService.createImageStack(any(ImageStack.class))).thenThrow(new ResourceNotFoundException("No active test found with ID: "));
 
         mockMvc.perform(post("/api/tests/image-stacks")
