@@ -102,7 +102,7 @@ public class HospitalDoctorControllerTest {
 
     @Test
     void shouldReturn403IfNoJwtAuthenticationWhenCreating() throws Exception {
-        mockMvc.perform(patch("/api/hospitals/hospital-doctor")
+        mockMvc.perform(post("/api/hospitals/hospital-doctor")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sampleHospitalDoctor)))
                 .andExpect(status().isForbidden());
@@ -128,7 +128,7 @@ public class HospitalDoctorControllerTest {
         when(hospitalService.getHospitalIdByKeycloakId("keycloak-id-123")).thenReturn(1L);
         doThrow(new RuntimeException("Unexpected error")).when(hospitalDoctorService).createHospitalDoctor(1L, 1L);
 
-        mockMvc.perform(delete("/api/hospitals/hospital-doctor")
+        mockMvc.perform(post("/api/hospitals/hospital-doctor")
                         .with(jwt().jwt(jwt -> {
                             jwt.claim("sub", "keycloak-id-123");
                             jwt.claim("realm_access", Map.of("roles", List.of("HOSPITAL")));
@@ -157,7 +157,7 @@ public class HospitalDoctorControllerTest {
         when(hospitalService.getHospitalIdByKeycloakId("keycloak-id-123")).thenReturn(1L);
         doThrow(new RuntimeException("Unexpected error")).when(hospitalDoctorService).getAllHospitalDoctorsByHospitalId(1L);
 
-        mockMvc.perform(delete("/api/hospitals/hospital-doctor")
+        mockMvc.perform(get("/api/hospitals/hospital-doctor")
                         .with(jwt().jwt(jwt -> {
                             jwt.claim("sub", "keycloak-id-123");
                             jwt.claim("realm_access", Map.of("roles", List.of("HOSPITAL")));
