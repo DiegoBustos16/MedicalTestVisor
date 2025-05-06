@@ -1,6 +1,7 @@
 package com.visor.test_microservice.service;
 
 import com.visor.test_microservice.entity.ImageFile;
+import com.visor.test_microservice.exception.InvalidFileException;
 import com.visor.test_microservice.exception.ResourceNotFoundException;
 import com.visor.test_microservice.repository.ImageFileRepository;
 import com.visor.test_microservice.repository.ImageStackRepository;
@@ -77,14 +78,14 @@ public class ImageFileServiceTest {
             given(imageStackRepository.existsById("valid-stack-id")).willReturn(true);
 
             assertThatThrownBy(() -> imageFileService.saveImageFile(file, "valid-stack-id"))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidFileException.class)
                     .hasMessageContaining("The file is empty or null");
         }
 
         @Test
         @DisplayName("should throw when file upload fails")
         void createImageFile_shouldThrow_whenFileUploadFails() throws IOException {
-            MultipartFile file = new MockMultipartFile("file", "image.jpg", "image/jpeg", new byte[0]);
+            MultipartFile file = new MockMultipartFile("file", "image.jpg", "image/jpeg", new byte[1]);
             given(imageStackRepository.existsById("valid-stack-id")).willReturn(true);
             given(s3Service.uploadFile(file)).willThrow(new IOException("Upload failed"));
 
