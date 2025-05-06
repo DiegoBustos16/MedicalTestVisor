@@ -8,19 +8,19 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/tests/image-stacks")
 public class ImageStackController {
 
-    @Autowired
-    private ImageStackService imageStackService;
+    private final ImageStackService imageStackService;
 
     @Operation(
             summary = "Create Image Stack",
@@ -28,29 +28,36 @@ public class ImageStackController {
             security = @SecurityRequirement(name = "security_auth")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Image Stack created successfully",
+            @ApiResponse(responseCode = "200", description = "Image Stack created successfully",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "400", description = "Invalid request",
                     content = @Content(mediaType = "application/json",
                             examples = {
-                                    @ExampleObject(name = "InvalidTest",
+                                    @ExampleObject(name = "Invalid Test ID",
                                             summary = "Test not found",
-                                            value = "{\"error\": \"Test does not exist\"}")
+                                            value = "{\"error\": \"Invalid test ID format\"}")
+                            }
+                    )
+            ),
+            @ApiResponse(responseCode = "404", description = "Resource not found",
+                    content = @Content(mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            value = "{\"error\": \"Test does not exist or is deleted\"}")
                             }
                     )
             ),
             @ApiResponse(responseCode = "500", description = "Internal server error",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
-                                    value = "{\"error\": \"Unexpected server error\"}"
+                                    value = "{\"error\": \"Internal Server Error\"}"
                             )
                     )
             )
     })
     @PostMapping
-    public ResponseEntity<ImageStack> createImageStack(@RequestBody ImageStack imageStack) {
-        ImageStack createdStack = imageStackService.createImageStack(imageStack);
-        return new ResponseEntity<>(createdStack, HttpStatus.CREATED);
+    public ResponseEntity<ImageStack> createImageStack(@RequestBody @Valid ImageStack imageStack) {
+        return ResponseEntity.ok(imageStackService.createImageStack(imageStack));
     }
 
     @Operation(
@@ -61,17 +68,19 @@ public class ImageStackController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Image stacks retrieved successfully",
                     content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "404", description = "No image stacks found for the given test ID",
+            @ApiResponse(responseCode = "404", description = "Resource not found",
                     content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = "{\"error\": \"No image stacks found for test ID\"}"
-                            )
-                    ))
+                            examples = {
+                                    @ExampleObject(
+                                            value = "{\"error\": \"Test does not exist or is deleted\"}")
+                            }
+                    )
+            ),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error")
     })
     @GetMapping("/test/{testEntityId}")
     public ResponseEntity<List<ImageStack>> getImageStacksByTestEntityId(@PathVariable String testEntityId) {
-        List<ImageStack> stacks = imageStackService.getImageStacksByTestEntityId(testEntityId);
-        return new ResponseEntity<>(stacks, HttpStatus.OK);
+        return ResponseEntity.ok(imageStackService.getImageStacksByTestEntityId(testEntityId));
     }
 
     @Operation(
@@ -80,17 +89,18 @@ public class ImageStackController {
             security = @SecurityRequirement(name = "security_auth")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Image stack deleted successfully"),
+            @ApiResponse(responseCode = "200", description = "Image stack deleted successfully"),
             @ApiResponse(responseCode = "404", description = "Image stack not found",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
-                                    value = "{\"error\": \"Image stack not found\"}"
+                                    value = "{\"error\": \"Image stack not found with given ID\"}"
                             )
-                    ))
+                    )),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error")
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteImageStack(@PathVariable String id) {
         imageStackService.deleteImageStack(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }

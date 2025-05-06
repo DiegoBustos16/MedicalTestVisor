@@ -2,31 +2,25 @@ package com.visor.test_microservice.controller;
 
 import com.visor.test_microservice.entity.ImageFile;
 import com.visor.test_microservice.service.ImageFileService;
-import com.visor.test_microservice.service.S3Service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/tests/image-files")
 public class ImageFileController {
 
-    @Autowired
-    private ImageFileService imageFileService;
-
-    @Autowired
-    private S3Service s3Service;
+    private final ImageFileService imageFileService;
 
     @Operation(
             summary = "Upload Image File",
@@ -34,7 +28,7 @@ public class ImageFileController {
             security = @SecurityRequirement(name = "security_auth")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Image file uploaded and saved successfully",
+            @ApiResponse(responseCode = "200", description = "Image file uploaded and saved successfully",
                     content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "400", description = "Invalid request",
                     content = @Content(mediaType = "application/json",
@@ -42,30 +36,33 @@ public class ImageFileController {
                                     value = "{\"error\": \"Missing file or imageStackId\"}"
                             )
                     )),
+            @ApiResponse(responseCode = "404", description = "Resource not found",
+                    content = @Content(mediaType = "application/json",
+                            examples = {
+                                    @ExampleObject(
+                                            value = "{\"error\": \"Image Stack does not exist or is deleted\"}")
+                            }
+                    )
+            ),
             @ApiResponse(responseCode = "500", description = "Error during file upload or processing",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
                                     value = "{\"error\": \"Error uploading file to S3\"}"
                             )
-                    ))
+                    )),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{error: Internal Server Error}"
+                            )
+                    )
+            )
     })
     @PostMapping(consumes = "multipart/form-data")
-    public ResponseEntity<?> saveImageFile(
+    public ResponseEntity<ImageFile> saveImageFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("imageStackId") String imageStackId) {
-
-        ImageFile imageFile = new ImageFile();
-        try {
-            String url = s3Service.uploadFile(file);
-            imageFile.setFileUrl(url);
-            imageFile.setImageStackId(imageStackId);
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("{\"error\": \"Error uploading file to S3\"}");
-        }
-
-        ImageFile savedImage = imageFileService.saveImageFile(imageFile);
-        return new ResponseEntity<>(savedImage, HttpStatus.CREATED);
+        return ResponseEntity.ok(imageFileService.saveImageFile(file, imageStackId));
     }
 
     @Operation(
@@ -76,17 +73,23 @@ public class ImageFileController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Files retrieved successfully",
                     content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "404", description = "No image files found for the given stack ID",
+            @ApiResponse(responseCode = "404", description = "Resource not found",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
-                                    value = "{\"error\": \"No image files found for stack ID 'abc123'\"}"
+                                    value = "{\"error\": \"ImageStack does not exist or is deleted'\"}"
                             )
-                    ))
+                    )),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Internal Server Error\"}"
+                            )
+                    )
+            )
     })
     @GetMapping("/stack/{imageStackId}")
     public ResponseEntity<List<ImageFile>> getImageFilesByImageStackId(@PathVariable String imageStackId) {
-        List<ImageFile> files = imageFileService.getImageFilesByImageStackId(imageStackId);
-        return new ResponseEntity<>(files, HttpStatus.OK);
+        return ResponseEntity.ok(imageFileService.getImageFilesByImageStackId(imageStackId));
     }
 
     @Operation(
@@ -95,17 +98,24 @@ public class ImageFileController {
             security = @SecurityRequirement(name = "security_auth")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Image file deleted successfully"),
+            @ApiResponse(responseCode = "200", description = "Image file deleted successfully"),
             @ApiResponse(responseCode = "404", description = "Image file not found",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
                                     value = "{\"error\": \"Image file with ID 'xyz789' not found\"}"
                             )
-                    ))
+                    )),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Internal Server Error\"}"
+                            )
+                    )
+            )
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteImageFile(@PathVariable String id) {
         imageFileService.deleteImageFile(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }

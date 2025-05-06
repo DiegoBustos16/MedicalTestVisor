@@ -1,5 +1,7 @@
 package com.visor.test_microservice.service;
 
+import com.visor.test_microservice.client.HospitalClient;
+import com.visor.test_microservice.client.PatientClient;
 import com.visor.test_microservice.dto.FileAttachmentDTO;
 import com.visor.test_microservice.dto.ImageFileDTO;
 import com.visor.test_microservice.dto.ImageStackDTO;
@@ -8,38 +10,41 @@ import com.visor.test_microservice.entity.FileAttachment;
 import com.visor.test_microservice.entity.ImageFile;
 import com.visor.test_microservice.entity.ImageStack;
 import com.visor.test_microservice.entity.TestEntity;
+import com.visor.test_microservice.exception.ResourceNotFoundException;
 import com.visor.test_microservice.repository.FileAttachmentRepository;
 import com.visor.test_microservice.repository.ImageFileRepository;
 import com.visor.test_microservice.repository.ImageStackRepository;
 import com.visor.test_microservice.repository.TestRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
+@RequiredArgsConstructor
 @Service
 public class TestService {
 
-    @Autowired
-    private TestRepository testRepository;
-    @Autowired
+    private final TestRepository testRepository;
     private final ImageStackRepository imageStackRepository;
-    @Autowired
     private final ImageFileRepository imageFileRepository;
-    @Autowired
     private final FileAttachmentRepository fileAttachmentRepository;
+    private final HospitalClient hospitalClient;
+    private final PatientClient patientClient;
 
-    public TestService(ImageStackRepository imageStackRepository, ImageFileRepository imageFileRepository, FileAttachmentRepository fileAttachmentRepository) {
-        this.imageStackRepository = imageStackRepository;
-        this.imageFileRepository = imageFileRepository;
-        this.fileAttachmentRepository = fileAttachmentRepository;
-    }
 
     public TestEntity createTestEntity(TestEntity testEntity) {
+
+        if (!hospitalClient.existHospitalDoctorByDoctorIdAndHospitalId(testEntity.getDoctorId(), testEntity.getHospitalId())) {
+            throw new ResourceNotFoundException("No active association found with Doctor Id: " + testEntity.getDoctorId() + " and Hospital Id: " + testEntity.getHospitalId());
+        }
+
+        if (patientClient.existPatientById(testEntity.getPatientId())) {
+            throw new ResourceNotFoundException("No active patient found with Patient Id: " + testEntity.getPatientId());
+        }
+
         testEntity.setPassCode(UUID.randomUUID().toString().replaceAll("-", "").substring(0, 10));
         return testRepository.save(testEntity);
     }
@@ -48,16 +53,21 @@ public class TestService {
         return testRepository.findByDeletedAtIsNull();
     }
 
-    public Optional<TestEntity> getTestById(String id) {
-        return testRepository.findByIdAndDeletedAtIsNull(id);
+    public TestEntity getTestById(String id) {
+        return testRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("No active test found with ID: " + id));
     }
 
     public PatientTestDTO getPatientTestByPasscode(String passcode) {
-        Optional<TestEntity> optionalTest = testRepository.findByPassCodeAndDeletedAtIsNull(passcode);
-        if (optionalTest.isEmpty()) {
-            return null;
+        if (!passcode.matches("^[A-Za-z0-9]{10}$")) {
+            throw new IllegalArgumentException("Invalid test passcode format");
         }
-        TestEntity test = optionalTest.get();
+
+        TestEntity test = testRepository.findByPassCodeAndDeletedAtIsNull(passcode)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("No active test found with code: " + passcode));
+
         PatientTestDTO dto = new PatientTestDTO();
         dto.setId(test.getId());
         dto.setDoctorId(test.getDoctorId());
@@ -67,7 +77,7 @@ public class TestService {
         dto.setDeletedAt(test.getDeletedAt());
         dto.setPassCode(test.getPassCode());
 
-        // Obtener imageStacks para el test
+        //Get imageStacks for the test
         List<ImageStack> stacks = imageStackRepository.findByTestIdAndDeletedAtIsNull(test.getId());
         List<ImageStackDTO> stackDTOs = new ArrayList<>();
         for (ImageStack stack : stacks) {
@@ -78,7 +88,7 @@ public class TestService {
             stackDTO.setDeletedAt(stack.getDeletedAt());
             stackDTO.setTestId(stack.getTestId());
 
-            // Obtener los imageFiles para cada stack
+            //Get the imageFiles for each stack
             List<ImageFile> imageFiles = imageFileRepository.findByImageStackIdAndDeletedAtIsNull(stack.getId());
             List<ImageFileDTO> imageFileDTOs = new ArrayList<>();
             for (ImageFile file : imageFiles) {
@@ -95,7 +105,7 @@ public class TestService {
         }
         dto.setImageStacks(stackDTOs);
 
-        // Obtener fileAttachments para el test
+        //Get fileAttachments for the test
         List<FileAttachment> attachments = fileAttachmentRepository.findByTestIdAndDeletedAtIsNull(test.getId());
         List<FileAttachmentDTO> attachmentDTOs = new ArrayList<>();
         for (FileAttachment att : attachments) {
@@ -119,10 +129,16 @@ public class TestService {
                 .orElseThrow(() -> new RuntimeException("TestEntity not found"));
 
         if (updateTestEntity.getPatientId() != null) {
+            if (!patientClient.existPatientById(updateTestEntity.getPatientId())) {
+                throw new ResourceNotFoundException("No active patient found with Patient Id: " + updateTestEntity.getPatientId());
+            }
             test.setPatientId(updateTestEntity.getPatientId());
         }
 
         if (updateTestEntity.getHospitalId() != null) {
+            if (!hospitalClient.existHospitalDoctorByDoctorIdAndHospitalId(test.getDoctorId(), updateTestEntity.getHospitalId())) {
+                throw new ResourceNotFoundException("No active association found with Doctor Id: " + test.getDoctorId() + " and Hospital Id: " + updateTestEntity.getHospitalId());
+            }
             test.setHospitalId(updateTestEntity.getHospitalId());
         }
 
@@ -130,12 +146,12 @@ public class TestService {
     }
 
 
-
     public void deleteTestEntity(String id) {
-        Optional<TestEntity> testEntity = testRepository.findByIdAndDeletedAtIsNull(id);
-        testEntity.ifPresent(entity -> {
-            entity.setDeletedAt(Instant.now());
-            testRepository.save(entity);
-        });
+        TestEntity test = testRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Cannot delete. No active test found with ID: " + id));
+
+        test.setDeletedAt(Instant.now());
+        testRepository.save(test);
     }
 }
