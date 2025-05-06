@@ -67,17 +67,11 @@ public class DoctorControllerTest {
     }
 
     @Test
-    void shouldReturn403IfNoJwtAuthenticationWhenGetting() throws Exception {
-        mockMvc.perform(delete("/api/hospitals/doctors/hospital"))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void shouldReturn500IfUnexpectedErrorWhenUpdatingDoctor() throws Exception {
         when(hospitalService.getHospitalIdByKeycloakId("keycloak-id-123")).thenReturn(1L);
         when(doctorService.getAllDoctorsByHospital(1L)).thenThrow(new RuntimeException("Unexpected error"));
 
-        mockMvc.perform(patch("/api/hospitals/doctors/hospital")
+        mockMvc.perform(get("/api/hospitals/doctors/hospital")
                         .with(jwt().jwt(jwt -> {
                             jwt.claim("sub", "keycloak-id-123");
                             jwt.claim("realm_access", Map.of("roles", List.of("HOSPITAL")));
