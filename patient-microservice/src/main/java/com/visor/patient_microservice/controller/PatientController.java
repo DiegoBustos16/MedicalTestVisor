@@ -9,18 +9,18 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/patients")
 public class PatientController {
 
-    @Autowired
-    private PatientService patientService;
+    private final PatientService patientService;
 
     @Operation(
             summary = "Create Patient",
@@ -30,16 +30,16 @@ public class PatientController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Patient created successfully",
                     content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "400", description = "Bad Request. For example, missing required fields",
+            @ApiResponse(responseCode = "400", description = "Invalid request",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
                                     value = "{\"error\": \"Missing or invalid fields: firstName is required\"}"
                             )
                     )),
-            @ApiResponse(responseCode = "500", description = "Server Error",
+            @ApiResponse(responseCode = "500", description = "Internal Server Error",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
-                                    value = "{\"error\": \"Unexpected error occurred while creating the patient\"}"
+                                    value = "{\"error\": \"Internal Server Error\"}"
                             )
                     ))
     })
@@ -57,9 +57,8 @@ public class PatientController {
                             )
                     )
             )
-            @RequestBody Patient patient) {
-        Patient created = patientService.createPatient(patient);
-        return ResponseEntity.ok(created);
+            @RequestBody @Valid Patient patient) {
+                return ResponseEntity.ok(patientService.createPatient(patient));
     }
 
     @Operation(
@@ -70,17 +69,16 @@ public class PatientController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "List of patients retrieved successfully",
                     content = @Content(mediaType = "application/json")),
-            @ApiResponse(responseCode = "500", description = "Server Error",
+            @ApiResponse(responseCode = "500", description = "Internal Server Error",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
-                                    value = "{\"error\": \"Unexpected error occurred while fetching patients\"}"
+                                    value = "{\"error\": \"Internal Server Error\"}"
                             )
                     ))
     })
     @GetMapping
     public ResponseEntity<List<Patient>> getAllPatients() {
-        List<Patient> patients = patientService.getAllPatients();
-        return ResponseEntity.ok(patients);
+        return ResponseEntity.ok(patientService.getAllPatients());
     }
 
     @Operation(
@@ -90,16 +88,23 @@ public class PatientController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Patient found",
                     content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "400", description = "Invalid request",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                            value = "{\"error\": \"Invalid patient ID format\"}")
+
+                    )
+            ),
             @ApiResponse(responseCode = "404", description = "Patient not found",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
                                     value = "{\"error\": \"Patient with ID 5 not found\"}"
                             )
                     )),
-            @ApiResponse(responseCode = "500", description = "Server Error",
+            @ApiResponse(responseCode = "500", description = "Internal Server Error",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
-                                    value = "{\"error\": \"Unexpected error occurred while fetching the patient\"}"
+                                    value = "{\"error\": \"Internal Server Error\"}"
                             )
                     ))
     })
@@ -107,9 +112,7 @@ public class PatientController {
     public ResponseEntity<Patient> getPatientById(
             @Parameter(description = "Unique ID of the patient", example = "5")
             @PathVariable Long id) {
-        return patientService.getPatientById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(patientService.getPatientById(id));
     }
 
     @Operation(
@@ -122,21 +125,23 @@ public class PatientController {
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(value = "true")
                     )),
-            @ApiResponse(responseCode = "404", description = "Patient not found",
+            @ApiResponse(responseCode = "400", description = "Invalid request",
                     content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(value = "{\"error\": \"Patient with ID 5 not found\"}")
-                    )),
-            @ApiResponse(responseCode = "500", description = "Server Error",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Invalid patient ID format\"}")
+
+                    )
+            ),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error",
                     content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(value = "{\"error\": \"Unexpected error occurred\"}")
+                            examples = @ExampleObject(value = "{\"error\": \"Internal Server Error\"}")
                     ))
     })
     @GetMapping("/exist/{id}")
     public ResponseEntity<Boolean> existPatientById(
             @Parameter(description = "Unique ID of the patient", example = "5")
             @PathVariable Long id) {
-        boolean exists = patientService.existPatientById(id);
-        return ResponseEntity.ok(exists);
+        return ResponseEntity.ok(patientService.existPatientById(id));
     }
 
     @Operation(
@@ -150,13 +155,13 @@ public class PatientController {
             @ApiResponse(responseCode = "400", description = "Invalid search criteria",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
-                                    value = "{\"error\": \"Invalid search criteria: field X is invalid\"}"
+                                    value = "{\"error\": \"Invalid search criteria: field identification number is invalid\"}"
                             )
                     )),
-            @ApiResponse(responseCode = "500", description = "Server Error",
+            @ApiResponse(responseCode = "500", description = "Internal Server Error",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(
-                                    value = "{\"error\": \"Unexpected error occurred during search\"}"
+                                    value = "{\"error\": \"Internal Server Error\"}"
                             )
                     ))
     })
@@ -172,8 +177,7 @@ public class PatientController {
                     )
             )
             @RequestBody Patient filter) {
-        List<Patient> patients = patientService.searchPatients(filter);
-        return ResponseEntity.ok(patients);
+        return ResponseEntity.ok(patientService.searchPatients(filter));
     }
 
     @Operation(
@@ -184,13 +188,20 @@ public class PatientController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Patient updated successfully",
                     content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "400", description = "Invalid request",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Invalid patient ID format\"}")
+
+                    )
+            ),
             @ApiResponse(responseCode = "404", description = "Patient not found",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(value = "{\"error\": \"Patient with ID 5 not found\"}")
                     )),
-            @ApiResponse(responseCode = "500", description = "Server Error",
+            @ApiResponse(responseCode = "500", description = "Internal Server Error",
                     content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(value = "{\"error\": \"Unexpected error occurred while updating the patient\"}")
+                            examples = @ExampleObject(value = "{\"error\": \"Internal Server Error\"}")
                     ))
     })
     @PutMapping("/{id}")
@@ -207,8 +218,7 @@ public class PatientController {
                     )
             )
             @RequestBody Patient patient) {
-        Patient updatedPatient = patientService.updatePatient(id, patient);
-        return ResponseEntity.ok(updatedPatient);
+        return ResponseEntity.ok(patientService.updatePatient(id, patient));
     }
 
     @Operation(
@@ -218,13 +228,20 @@ public class PatientController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Patient deleted successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(
+                                    value = "{\"error\": \"Invalid patient ID format\"}")
+
+                    )
+            ),
             @ApiResponse(responseCode = "404", description = "Patient not found",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(value = "{\"error\": \"Patient with ID 5 not found\"}")
                     )),
-            @ApiResponse(responseCode = "500", description = "Server Error",
+            @ApiResponse(responseCode = "500", description = "Internal Server Error",
                     content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(value = "{\"error\": \"Unexpected error occurred while deleting the patient\"}")
+                            examples = @ExampleObject(value = "{\"error\": \"Internal Server Error\"}")
                     ))
     })
     @DeleteMapping("/{id}")
@@ -232,6 +249,6 @@ public class PatientController {
             @Parameter(description = "Unique ID of the patient to delete", example = "5")
             @PathVariable Long id) {
         patientService.deletePatient(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }
